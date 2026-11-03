@@ -1055,7 +1055,7 @@ function finish() {
   }
   let autoStars = 0;
   if (S.cfg.autoStar) wrong.forEach(id => { if (!S.star[id]) { S.star[id] = now; autoStars++; } });
-  const hrec = { ts: now, first, total: s.ids.length, taps: s.taps, dur, wrong };
+  const hrec = { ts: now, first, total: s.ids.length, taps: s.taps, dur, wrong, kind: s.kind, mode: s.mode || '' };
   if (s.kind === 'learn') {
     S.groups.push({ id: s.gno, range: s.range, ts: now, ids: s.ids.slice(), hist: [hrec] });
   } else if (s.kind === 'group') {
@@ -1682,8 +1682,18 @@ function pushData() {
     return { gno: g.id, range: g.range, first: g.hist.length ? g.hist[0].first : null, total: g.ids.length,
       wrong: Object.entries(wrong).map(([w, n]) => ({ w, n })), hist: g.hist };
   });
+  const recent = [];
+  S.groups.forEach(g => (g.hist || []).forEach(h => {
+    recent.push({ ts: h.ts || 0, first: h.first, total: h.total || (g.ids || []).length, dur: h.dur || 0,
+      wrong: (h.wrong || []).length, kind: h.kind || '', mode: h.mode || '', gno: g.id });
+  }));
+  recent.sort((a, b) => b.ts - a.ts);
+  const dayKeys = Object.keys(S.days || {}).sort().slice(-30), days = {};
+  dayKeys.forEach(k => { if ((S.days[k] || 0) > 0) days[k] = S.days[k]; });
   const minutes = Math.round(S.groups.reduce((a, g) => a + g.hist.reduce((b, h) => b + (h.dur || 0), 0), 0) / 60);
-  return { seq: S.seq, learned: Object.keys(S.learned).length, groups, minutes, cfg: { range: S.range, diff: S.cfg.diff } };
+  return { seq: S.seq, learned: Object.keys(S.learned).length, groups, minutes, cfg: { range: S.range, diff: S.cfg.diff },
+    days, streak: streakDays(), goal: S.cfg.goal || 20, today: todayCount(), due: dueIds().length,
+    wrongN: wrongIds().length, stars: Object.keys(S.star || {}).length, sessions: recent.slice(0, 30) };
 }
 function syncStatusText() {
   const y = S.sync;

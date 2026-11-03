@@ -612,5 +612,16 @@ console.log('\n[23] 搜索历史、词卡返回栈与显示设置');
   ok(w.eval('S.cfg.rate') === 0.75, '发音语速可调');
 }
 
+console.log('\n[24] 老师端同步载荷');
+{
+  const d = makeDom(), w = d.window;
+  const key = w.eval('todayKey()');
+  w.eval(`S.learned={0:{w:1,due:Date.now()-864e5,r:2,t:Date.now(),ok:1,e:2.5,st:1,lp:0,iv:1},1:{w:1,due:Date.now()+864e5,r:2,t:Date.now(),ok:1,e:2.5,st:1,lp:0,iv:1}};S.days={${JSON.stringify(key)}:3};S.star={0:1};S.cfg.goal=20;S.groups=[];`);
+  const p = w.pushData();
+  ok(p.goal === 20 && p.today === 3 && p.days[key] === 3, '上传今日/目标/每日学习量');
+  ok(p.due === 1 && p.stars === 1 && typeof p.streak === 'number', '上传待复习/收藏/连续天数');
+  ok(Array.isArray(p.sessions) && Array.isArray(p.groups), '上传最近练习与分组');
+}
+
 console.log(`\n结果：${pass} 通过，${fail} 失败`);
 process.exit(fail ? 1 : 0);

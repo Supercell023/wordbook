@@ -3,108 +3,169 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f4efe4">
 <title>单词本 · 老师端</title>
 <style>
 :root{
-  --bg:#f5f6f8; --card:#fff; --text:#16181d; --sub:#6b7280; --line:#e5e7eb;
-  --accent:#6d5efc; --accent-ink:#fff; --ok:#12a150; --warn:#d97706; --bad:#dc2626;
-  --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.05);
+  --bg:#f4efe4;--card:#fffdf8;--text:#182033;--sub:#6f756f;--line:#e4dccb;
+  --accent:#2f4bd8;--accent-soft:rgba(47,75,216,.10);
+  --ok:#0b8f63;--warn:#b96a00;--bad:#c93a4a;--muted:#8b8f96;
+  --shadow:0 1px 2px rgba(30,24,12,.05),0 10px 26px rgba(30,24,12,.06);
+  --serif:"Times New Roman","Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;
 }
 @media (prefers-color-scheme:dark){
-  :root{--bg:#0f1115;--card:#171a21;--text:#e8eaf0;--sub:#9aa3b2;--line:#232a36;--accent:#8b7bff;--ok:#34d399;--warn:#fbbf24;--bad:#f87171;--shadow:0 1px 2px rgba(0,0,0,.4);}
+  :root{--bg:#0e1117;--card:#151a22;--text:#eef1f7;--sub:#9aa3b2;--line:#2a3342;
+    --accent:#8fa2ff;--accent-soft:rgba(143,162,255,.12);--ok:#34d399;--warn:#fbbf24;--bad:#f87171;--muted:#87909f;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 30px rgba(0,0,0,.28);}
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
-.app{max-width:720px;margin:0 auto;padding:12px 14px 84px}
-header{display:flex;align-items:baseline;justify-content:space-between;padding:6px 2px 12px}
-h1{font-size:19px;margin:0;letter-spacing:.2px}
-h1 span{font-size:12px;color:var(--sub);font-weight:500;margin-left:8px}
-.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
-.row{display:flex;align-items:center;gap:8px}
+body{margin:0;background:
+  radial-gradient(1100px 600px at 8% -10%,rgba(214,187,140,.18),transparent 60%),
+  radial-gradient(900px 500px at 100% 0%,rgba(47,75,216,.07),transparent 55%),var(--bg);
+  color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;min-height:100vh}
+.app{max-width:820px;margin:0 auto;padding:14px 14px 92px}
+header{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 14px}
+header h1{font-family:var(--serif);font-size:21px;margin:0;letter-spacing:.2px;font-weight:700}
+header h1 span{font-family:inherit;font-size:11px;color:var(--sub);font-weight:400;margin-left:7px;letter-spacing:.6px}
+.card{background:var(--card);border:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-radius:16px;padding:15px;margin-bottom:11px;box-shadow:var(--shadow)}
+.row{display:flex;align-items:center;gap:9px}
 .grow{flex:1;min-width:0}
 .sub{color:var(--sub);font-size:12.5px}
-.name{font-size:15.5px;font-weight:650}
-.pill{font-size:11.5px;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);white-space:nowrap}
-.pill.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.name{font-size:16px;font-weight:650;letter-spacing:.1px}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;padding:3px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent);white-space:nowrap;font-weight:600}
+.pill.ok{background:color-mix(in srgb,var(--ok) 13%,transparent);color:var(--ok)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
 .pill.bad{background:color-mix(in srgb,var(--bad) 12%,transparent);color:var(--bad)}
-.chip{display:inline-block;font-size:12px;padding:3px 8px;border-radius:8px;background:var(--bg);border:1px solid var(--line);margin:3px 4px 0 0}
-.chip b{color:var(--bad);font-weight:600}
-button{font:inherit;border:0;border-radius:11px;padding:10px 14px;background:var(--bg);color:var(--text);border:1px solid var(--line);cursor:pointer}
-button.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:650}
+.pill.muted{background:color-mix(in srgb,var(--muted) 12%,transparent);color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 9px;border-radius:9px;background:var(--bg);border:1px solid var(--line);margin:3px 4px 0 0;color:var(--text)}
+.chip b{color:var(--bad);font-weight:650}
+button{font:inherit;border:0;border-radius:11px;padding:9px 13px;background:var(--bg);color:var(--text);border:1px solid var(--line);cursor:pointer;transition:.15s}
+button:active{transform:scale(.985)}
+button.primary{background:var(--accent);color:#fff;border-color:transparent;font-weight:650}
 button.ghost{background:transparent}
+button.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,var(--line))}
 button:disabled{opacity:.45}
 input,textarea,select{font:inherit;width:100%;padding:10px 11px;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--text);outline:none}
-input:focus,textarea:focus{border-color:var(--accent)}
-textarea{resize:vertical;min-height:84px}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea{resize:vertical;min-height:78px}
 label{display:block;font-size:12.5px;color:var(--sub);margin:10px 0 5px}
-.seg{display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:12px;margin-bottom:12px}
-.seg button{flex:1;border:0;background:transparent;padding:8px;border-radius:9px;font-size:13.5px;color:var(--sub)}
-.seg button.on{background:var(--card);color:var(--text);font-weight:650;box-shadow:var(--shadow)}
-.nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom));z-index:20}
-.nav button{flex:1;border:0;background:transparent;font-size:11.5px;color:var(--sub);padding:6px 2px;display:flex;flex-direction:column;gap:3px;align-items:center}
+.seg{display:flex;gap:5px;background:color-mix(in srgb,var(--card) 70%,transparent);padding:4px;border-radius:13px;margin-bottom:13px;border:1px solid var(--line);overflow:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:1;border:0;background:transparent;padding:8px 10px;border-radius:9px;font-size:13.5px;color:var(--sub);white-space:nowrap}
+.seg button.on{background:var(--card);color:var(--text);font-weight:650;box-shadow:0 1px 5px rgba(0,0,0,.08)}
+.overview{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.metric{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 10px;box-shadow:var(--shadow)}
+.metric b{display:block;font-family:var(--serif);font-size:23px;line-height:1.15;letter-spacing:-.3px}
+.metric span{display:block;font-size:11.5px;color:var(--sub);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.metric.risk b{color:var(--warn)}
+.classcard{margin-bottom:12px}
+.spark{display:flex;align-items:flex-end;gap:6px;height:60px;margin-top:9px}
+.spark div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%}
+.spark i{display:block;width:100%;max-width:30px;border-radius:5px 5px 2px 2px;background:var(--accent-soft);border:1px solid var(--accent);opacity:.85}
+.spark span{font-size:10px;color:var(--sub);white-space:nowrap}
+.wrongrow{margin-top:2px}
+.toolbar{display:flex;gap:8px;margin:2px 0 8px}
+.toolbar input{flex:1;padding:9px 11px}
+.filters{display:flex;gap:6px;overflow:auto;padding-bottom:6px;margin-bottom:2px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.filters button{padding:6px 11px;border-radius:99px;font-size:12.5px;white-space:nowrap;background:transparent}
+.filters button.on{background:var(--text);color:var(--card);border-color:var(--text)}
+.student{cursor:pointer}
+.student .top{display:flex;align-items:flex-start;gap:9px}
+.avatar{width:36px;height:36px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;font-size:17px;flex:none}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.mini div{text-align:center}
+.mini b{display:block;font-size:15px;font-variant-numeric:tabular-nums}
+.mini span{display:block;font-size:10.5px;color:var(--sub);margin-top:2px}
+.todaybar{height:5px;border-radius:99px;background:var(--line);margin-top:8px;overflow:hidden}
+.todaybar i{display:block;height:100%;border-radius:99px;background:var(--ok)}
+.todaybar.low i{background:var(--warn)}
+.alert{font-size:12px;color:var(--warn);margin-top:7px}
+.alert.bad{color:var(--bad)}
+.detail-h{display:flex;align-items:flex-start;gap:10px}
+.detail-h h2{font-family:var(--serif);font-size:20px;margin:0}
+.bars{display:flex;align-items:flex-end;gap:7px;height:74px;margin:12px 0 4px}
+.bars i{flex:1;background:color-mix(in srgb,var(--accent) 55%,transparent);border-radius:5px 5px 0 0;min-height:4px;position:relative}
+.bars i.today{background:var(--accent)}
+.bars i span{position:absolute;bottom:-17px;left:50%;transform:translateX(-50%);font-size:9.5px;color:var(--sub);white-space:nowrap}
+.bars-wrap{padding-bottom:16px}
+.grid2{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.grid2 .cell{background:var(--bg);border-radius:11px;padding:9px;text-align:center}
+.grid2 b{display:block;font-size:16px}
+.grid2 span{display:block;font-size:10.5px;color:var(--sub);margin-top:2px}
+.section-t{font-size:12px;color:var(--sub);letter-spacing:.4px;margin:17px 0 6px;text-transform:uppercase}
+.tl{position:relative;padding-left:15px}
+.tl::before{content:"";position:absolute;left:4px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl .it{position:relative;padding:6px 0;font-size:13.5px}
+.tl .it::before{content:"";position:absolute;left:-14px;top:12px;width:7px;height:7px;border-radius:99px;background:var(--accent)}
+.assign-item{display:flex;gap:9px;align-items:flex-start;padding:10px 0;border-bottom:1px dashed var(--line)}
+.assign-item:last-child{border-bottom:0}
+.assign-item .ttl{font-weight:600;font-size:14px}
+.empty{color:var(--sub);text-align:center;padding:26px 10px;font-size:13px}
+.sheet{position:fixed;inset:0;background:rgba(8,10,14,.5);display:none;z-index:30}
+.sheet.on{display:block}
+.sheet .panel{position:absolute;left:0;right:0;bottom:0;max-height:90vh;overflow:auto;background:var(--card);border-radius:20px 20px 0 0;padding:8px 16px calc(24px + env(safe-area-inset-bottom));max-width:820px;margin:0 auto;box-shadow:0 -10px 40px rgba(0,0,0,.18)}
+.grab{width:38px;height:4px;border-radius:99px;background:var(--line);margin:6px auto 12px}
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(10px);background:#111;color:#fff;padding:9px 15px;border-radius:99px;font-size:13px;opacity:0;transition:.22s;z-index:50;max-width:86vw;text-align:center;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.nav{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom));z-index:20}
+.nav button{flex:1;border:0;background:transparent;font-size:11px;color:var(--sub);padding:6px 2px;display:flex;flex-direction:column;gap:3px;align-items:center;border:0}
 .nav button b{font-size:18px;line-height:1;font-weight:400}
 .nav button.on{color:var(--accent)}
-.sheet{position:fixed;inset:0;background:rgba(8,10,14,.45);display:none;z-index:30}
-.sheet.on{display:block}
-.sheet .panel{position:absolute;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;background:var(--card);border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto}
-.sheet h2{font-size:16px;margin:2px 0 10px}
-.hist{display:flex;gap:6px;align-items:flex-end;height:64px;margin:10px 0}
-.hist i{flex:1;background:color-mix(in srgb,var(--accent) 55%,transparent);border-radius:4px 4px 0 0;min-height:3px;position:relative}
-.hist i.low{background:color-mix(in srgb,var(--bad) 55%,transparent)}
-.code{font-family:ui-monospace,Menlo,monospace;font-size:14px;letter-spacing:.5px}
-.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(10px);background:#111;color:#fff;padding:9px 14px;border-radius:99px;font-size:13px;opacity:0;transition:.22s;z-index:50;max-width:86vw;text-align:center}
-.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-.empty{color:var(--sub);text-align:center;padding:26px 10px;font-size:13.5px}
-.mono{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
-.report{white-space:pre-wrap;font-size:14px;line-height:1.65;background:var(--bg);border-radius:12px;padding:12px;margin-top:10px}
-.tl{position:relative;padding-left:16px}
-.tl::before{content:"";position:absolute;left:4px;top:6px;bottom:6px;width:2px;background:var(--line)}
-.tl .it{position:relative;padding:6px 0}
-.tl .it::before{content:"";position:absolute;left:-15px;top:12px;width:7px;height:7px;border-radius:99px;background:var(--accent)}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:13px;letter-spacing:.5px}
+.report{white-space:pre-wrap;font-size:13.5px;line-height:1.65;background:var(--bg);border-radius:12px;padding:12px;margin-top:8px}
+@media (max-width:360px){.overview{grid-template-columns:repeat(2,1fr)}.mini{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
 <div class="app">
-  <header><h1>单词本 · 老师端<span id="who"></span></h1><button class="ghost" id="logout" style="display:none">退出</button></header>
+  <header>
+    <h1>单词本 · 老师端<span>TEACHER</span></h1>
+    <button class="ghost" id="logout" style="display:none">退出</button>
+  </header>
+
   <div id="login">
     <div class="card">
       <div class="name" style="margin-bottom:8px">老师登录</div>
       <label>账号</label><input id="u" autocomplete="username" value="teacher">
       <label>密码</label><input id="p" type="password" autocomplete="current-password">
       <div style="margin-top:14px"><button class="primary" id="doLogin" style="width:100%">登录</button></div>
-      <div class="sub" style="margin-top:10px">首次启动时服务器会在控制台打印初始密码。</div>
+      <div class="sub" style="margin-top:10px">初始密码见服务器启动日志；登录后可改。</div>
     </div>
   </div>
+
   <div id="main" style="display:none">
     <div class="seg" id="seg">
       <button data-tab="home" class="on">学生</button>
+      <button data-tab="tasks">作业</button>
       <button data-tab="codes">激活码</button>
-      <button data-tab="tasks">布置</button>
       <button data-tab="log">动态</button>
     </div>
     <div id="tab-home"></div>
-    <div id="tab-codes" style="display:none"></div>
     <div id="tab-tasks" style="display:none"></div>
+    <div id="tab-codes" style="display:none"></div>
     <div id="tab-log" style="display:none"></div>
   </div>
 </div>
+
 <nav class="nav" id="nav" style="display:none">
   <button data-tab="home" class="on"><b>👥</b>学生</button>
+  <button data-tab="tasks"><b>📝</b>作业</button>
   <button data-tab="codes"><b>🔑</b>激活码</button>
-  <button data-tab="tasks"><b>📝</b>布置</button>
   <button data-tab="log"><b>📡</b>动态</button>
 </nav>
+
 <div class="sheet" id="sheet"><div class="panel" id="panel"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
 const $ = s => document.querySelector(s);
-const el = (tag, attrs = {}, html) => { const e = document.createElement(tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let TOKEN = localStorage.getItem('wtok') || '';
-let ME = null, STUDENTS = [], CODES = [], TASKS = [];
+let STUDENTS = [], CODES = [], AGG = null, FILTER = 'all', QUERY = '', SHOW_N = 30, SORT = 'recent', PENDING_TARGET = '';
 
-function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2200); }
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2400); }
 async function api(path, opt = {}) {
   const r = await fetch(path, { ...opt, headers: { 'content-type': 'application/json', ...(TOKEN ? { authorization: 'Bearer ' + TOKEN } : {}), ...(opt.headers || {}) } });
   const j = await r.json().catch(() => ({}));
@@ -118,145 +179,304 @@ function fmtTime(ts) {
   if (diff < 60) return '刚刚';
   if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前';
   if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前';
-  return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  if (diff < 7 * 86400) return Math.floor(diff / 86400) + ' 天前';
+  return (d.getMonth() + 1) + '/' + d.getDate();
 }
-function accClass(v) { return v == null ? '' : v >= 80 ? 'ok' : v < 50 ? 'bad' : ''; }
+function fmtDur(sec) { sec = Number(sec || 0); return sec < 60 ? sec + ' 秒' : Math.round(sec / 60) + ' 分'; }
+function localDate(ts) { const d = new Date(ts || Date.now()); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function riskClass(r) { return r === 'ok' ? 'ok' : r === 'muted' ? 'muted' : r === 'bad' ? 'bad' : 'warn'; }
+function kindName(k) { return ({ learn: '新学', group: '复习', mix: '混合', due: '到期', star: '生词', practice: '错词', spell: '拼写', choice: '选择' })[k] || '练习'; }
 
 /* ---------- 登录 ---------- */
 async function doLogin() {
   try {
     const j = await api('/api/t/login', { method: 'POST', body: JSON.stringify({ user: $('#u').value.trim(), pass: $('#p').value }) });
-    TOKEN = j.token; localStorage.setItem('wtok', TOKEN);
-    enter();
+    TOKEN = j.token; localStorage.setItem('wtok', TOKEN); enter();
   } catch (e) { toast(e.message); }
 }
-function logout() { TOKEN = ''; localStorage.removeItem('wtok'); $('#login').style.display = ''; $('#main').style.display = 'none'; $('#nav').style.display = 'none'; $('#logout').style.display = 'none'; $('#who').textContent = ''; }
+function logout() { TOKEN = ''; localStorage.removeItem('wtok'); $('#login').style.display = ''; $('#main').style.display = 'none'; $('#nav').style.display = 'none'; $('#logout').style.display = 'none'; }
 async function enter() {
   $('#login').style.display = 'none'; $('#main').style.display = ''; $('#nav').style.display = ''; $('#logout').style.display = '';
-  $('#who').textContent = '已登录';
-  await refresh();
+  await refresh(); showTab('home');
 }
 $('#doLogin').onclick = doLogin;
 $('#p').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-$('#logout').onclick = async () => { logout(); toast('已退出'); };
+$('#logout').onclick = () => { logout(); toast('已退出'); };
 
 /* ---------- 数据 ---------- */
 async function refresh() {
   try {
     const o = await api('/api/t/overview');
-    STUDENTS = o.students;
-    const c = await api('/api/t/codes'); CODES = c.codes;
+    STUDENTS = o.students || []; AGG = o.agg || null;
+    const c = await api('/api/t/codes'); CODES = c.codes || [];
     renderHome(); renderCodes();
+    const t = document.querySelector('.seg button[data-tab=tasks]');
+    if (t && t.classList.contains('on')) renderTasks();
   } catch (e) { toast(e.message); }
 }
-function renderHome() {
-  const box = $('#tab-home'); box.innerHTML = '';
-  if (!STUDENTS.length) { box.appendChild(el('div', { class: 'card' }, '<div class="empty">还没有学生绑定。去「激活码」生成一个码，把码和服务器地址发给学生。</div>')); return; }
-  for (const s of STUDENTS) {
-    const sm = s.summary;
-    const card = el('div', { class: 'card', 'data-id': s.id });
-    card.innerHTML = `<div class="row"><div class="grow"><span class="name">${esc(s.name)}</span>
-      <span class="pill ${s.lastPushAt ? 'ok' : ''}">${s.lastPushAt ? '已上传' : '未上传'}</span></div>
-      <button class="ghost" data-act="detail" style="padding:6px 10px">详情</button></div>
-      <div class="sub" style="margin-top:4px">${s.lastPushAt ? '最近上传 ' + fmtTime(s.lastPushAt) : '等待第一次上传'} · 共 ${s.pushes} 次</div>
-      ${sm ? `<div class="row" style="margin-top:8px;gap:14px">
-        <div><div class="sub">学过</div><div class="name">${sm.groups} 组</div></div>
-        <div><div class="sub">首次正确率</div><div class="name">${sm.accuracy == null ? '—' : sm.accuracy + '%'}</div></div>
-        <div><div class="sub">累计用词</div><div class="name">${sm.learned}</div></div>
-      </div>
-      ${sm.topWrong.length ? '<div style="margin-top:8px">' + sm.topWrong.slice(0, 6).map(t => `<span class="chip">${esc(t.w)} <b>×${t.n}</b></span>`).join('') + '</div>' : ''}` : ''}`;
-    box.appendChild(card);
-  }
+function riskOf(s) { return s.risk || { key: 'never', label: '未上传', level: 'muted' }; }
+function statusOf(s) {
+  if (!s.lastPushAt || !s.summary) return { label: '未上传', cls: 'muted' };
+  const r = riskOf(s);
+  if (s.summary.today <= 0) return { label: '今日未学', cls: 'muted' };
+  if (r.key === 'ok') return { label: '今日已学', cls: 'ok' };
+  if (r.key === 'today') return { label: '今日已学', cls: 'ok' };
+  return { label: r.label, cls: riskClass(r.level) };
 }
-function renderCodes() {
-  const box = $('#tab-codes'); box.innerHTML = '';
-  const unused = CODES.filter(c => !c.used), used = CODES.filter(c => c.used);
-  const card = el('div', { class: 'card' }, `<div class="row"><div class="grow"><div class="name">未使用的激活码</div><div class="sub">发给学生，用来绑定设备</div></div><span class="pill">${unused.length} 个</span></div>
-    <div style="margin-top:10px">${unused.length ? unused.map(c => `<span class="chip code">${esc(c.code)}</span>`).join('') : '<div class="sub">还没有，点下面生成。</div>'}</div>
-    <div class="row" style="margin-top:12px;gap:8px"><button class="primary" data-act="gen">生成 1 个</button><button data-act="gen5" class="ghost">生成 5 个</button></div>`);
-  box.appendChild(card);
-  const card2 = el('div', { class: 'card' }, `<div class="name">已使用</div>
-    ${used.length ? used.map(c => `<div class="row" style="margin-top:8px"><span class="chip code">${esc(c.code)}</span><span class="grow sub" style="text-align:right">${esc(c.student || '')}</span></div>`).join('') : '<div class="sub" style="margin-top:8px">还没有。</div>'}`);
-  box.appendChild(card2);
-  box.onclick = async (e) => {
-    const t = e.target.closest('[data-act]'); if (!t) return;
-    if (t.dataset.act === 'gen' || t.dataset.act === 'gen5') {
-      const n = t.dataset.act === 'gen5' ? 5 : 1;
-      try { const j = await api('/api/t/codes', { method: 'POST', body: JSON.stringify({ count: n }) }); toast('已生成：' + j.codes.join(' ')); await refresh(); }
-      catch (err) { toast(err.message); }
-    }
-  };
-}
-function renderTasks() {
-  const box = $('#tab-tasks'); box.innerHTML = '';
-  const card = el('div', { class: 'card' }, `
-    <div class="name">布置任务 / 发消息</div>
-    <label>发给谁</label><select id="tg"><option value="all">全班</option>${STUDENTS.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>
-    <label>任务标题</label><input id="tt" placeholder="例如：背四级第 5–8 组">
-    <label>具体要求（可空）</label><textarea id="td" placeholder="例如：每组首次正确率不低于 70%，错的词抄写一遍"></textarea>
-    <label>截止日期（可空）</label><input id="dd" type="date">
-    <div class="row" style="margin-top:14px;gap:8px"><button class="primary grow" id="sendTask">发布任务</button><button id="sendMsg" class="ghost">只发消息</button></div>`);
-  box.appendChild(card);
-  box.appendChild(el('div', { class: 'card' }, `<div class="name">给学生的提示</div><div class="sub" style="margin-top:8px;line-height:1.7">学生在 App 里点「同步」时能看到这些内容。任务不会强制锁住学习，只做提醒。</div>`));
-  $('#sendTask').onclick = async () => {
-    try {
-      await api('/api/t/assign', { method: 'POST', body: JSON.stringify({ title: $('#tt').value, text: $('#td').value, due: $('#dd').value, target: $('#tg').value }) });
-      toast('已发布'); $('#tt').value = ''; $('#td').value = '';
-    } catch (e) { toast(e.message); }
-  };
-  $('#sendMsg').onclick = async () => {
-    const text = ($('#td').value || '').trim() || ($('#tt').value || '').trim();
-    if (!text) { toast('写点内容'); return; }
-    try { await api('/api/t/message', { method: 'POST', body: JSON.stringify({ text, target: $('#tg').value }) }); toast('已发送'); $('#tt').value = ''; $('#td').value = ''; }
-    catch (e) { toast(e.message); }
-  };
-}
-async function renderLog() {
-  const box = $('#tab-log'); box.innerHTML = '<div class="card"><div class="empty">加载中…</div></div>';
-  try {
-    const { log } = await api('/api/t/log');
-    box.innerHTML = '';
-    const icon = { bind: '🔗', push: '⬆️', codes: '🔑', assign: '📝', message: '💬', analyze: '🤖', 'login-fail': '⚠️', error: '❗', 'llm-error': '⚠️' };
-    box.appendChild(el('div', { class: 'card' }, log.length ? `<div class="tl">${log.map(x => `<div class="it"><div class="row"><span class="grow">${icon[x.kind] || '·'} ${esc(x.msg)}</div><span class="sub">${fmtTime(x.at)}</span></div></div>`).join('')}</div>` : '<div class="empty">暂无动态</div>'));
-  } catch (e) { toast(e.message); }
+function filtered() {
+  let list = STUDENTS.slice();
+  if (FILTER === 'today') list = list.filter(s => s.summary && s.summary.today <= 0);
+  else if (FILTER === 'risk') list = list.filter(s => ['never', 'gone', 'idle', 'low', 'due'].includes(riskOf(s).key));
+  else if (FILTER === 'never') list = list.filter(s => !s.lastPushAt);
+  else if (FILTER === 'unread') list = list.filter(s => s.assignments && s.assignments.unread > 0);
+  else if (FILTER === 'low') list = list.filter(s => s.summary && s.summary.accuracy != null && s.summary.accuracy < 60);
+  if (QUERY) list = list.filter(s => s.name.toLowerCase().includes(QUERY.toLowerCase()));
+  const sort = SORT;
+  if (sort === 'accuracy') list.sort((a, b) => (a.summary && a.summary.accuracy != null ? a.summary.accuracy : 999) - (b.summary && b.summary.accuracy != null ? b.summary.accuracy : 999));
+  else if (sort === 'streak') list.sort((a, b) => (b.summary && b.summary.streak || 0) - (a.summary && a.summary.streak || 0));
+  else if (sort === 'due') list.sort((a, b) => (b.summary && b.summary.due || 0) - (a.summary && a.summary.due || 0));
+  else list.sort((a, b) => (b.lastPushAt || 0) - (a.lastPushAt || 0));
+  return list;
 }
 
-/* ---------- 详情 ---------- */
+function classPanel() {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    days.push({ k, lab: (d.getMonth() + 1) + '/' + d.getDate(), v: 0 });
+  }
+  const wm = new Map();
+  for (const s of STUDENTS) {
+    const sm = s.summary; if (!sm) continue;
+    if (sm.days) for (const d of days) d.v += Number(sm.days[d.k]) || 0;
+    (sm.topWrong || []).forEach(t => wm.set(t.w, (wm.get(t.w) || 0) + t.n));
+  }
+  const total = days.reduce((a, b) => a + b.v, 0), max = Math.max(1, ...days.map(d => d.v));
+  const wrongs = [...wm.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const el = document.createElement('div'); el.className = 'card classcard';
+  el.innerHTML = `<div class="row"><span class="sub grow">班级学习量 · 近 7 天</span><span class="sub">${total} 词次</span></div>
+    <div class="spark">${days.map(d => `<div><i style="height:${Math.max(4, Math.round(d.v / max * 42))}px"></i><span>${d.lab}</span></div>`).join('')}</div>
+    ${wrongs.length ? `<div class="wrongrow"><span class="sub">班级高频错词</span><div style="margin-top:4px">${wrongs.map(([w, n]) => `<span class="chip">${esc(w)} <b>×${n}</b></span>`).join('')}</div></div>` : ''}`;
+  return el;
+}
+
+function renderHome() {
+  const box = $('#tab-home'); box.innerHTML = '';
+  if (!STUDENTS.length) {
+    box.innerHTML = '<div class="card"><div class="empty">还没有学生绑定。<br>去「激活码」生成一个码，把码和服务器地址发给学生。</div></div>';
+    return;
+  }
+  if (AGG) {
+    const ov = document.createElement('div'); ov.className = 'overview';
+    ov.innerHTML = `
+      <div class="metric"><b>${AGG.students}</b><span>学生</span></div>
+      <div class="metric"><b>${AGG.activeToday}</b><span>今日已学</span></div>
+      <div class="metric"><b>${AGG.avgAccuracy == null ? '—' : AGG.avgAccuracy + '%'}</b><span>平均正确率</span></div>
+      <div class="metric risk"><b>${AGG.atRisk}</b><span>需关注</span></div>`;
+    box.appendChild(ov);
+  }
+  box.appendChild(classPanel());
+  const bar = document.createElement('div');
+  bar.innerHTML = `<div class="toolbar"><input id="q" placeholder="搜索学生…" value="${esc(QUERY)}"><select id="sort" style="width:112px;padding:9px 8px">
+      <option value="recent">最近上传</option><option value="accuracy">正确率低</option><option value="streak">连续天数</option><option value="due">复习积压</option></select></div>
+    <div class="filters" id="filters">
+      ${[['all','全部'],['today','今日未学'],['risk','需关注'],['unread','作业未读'],['low','正确率<60%'],['never','未上传']].map(([k,l])=>`<button data-f="${k}" class="${FILTER===k?'on':''}">${l}</button>`).join('')}
+    </div>
+    <div class="row" style="margin:0 2px 8px"><span class="sub grow">${filtered().length} 人${AGG && AGG.unread ? ' · 未读作业 ' + AGG.unread : ''}</span><button class="ghost" style="padding:4px 9px;font-size:12px" id="csv">导出 CSV</button></div>`;
+  box.appendChild(bar);
+  const list = filtered().slice(0, SHOW_N);
+  const wrap = document.createElement('div');
+  for (const s of list) wrap.appendChild(studentCard(s));
+  if (!list.length) wrap.innerHTML = '<div class="card"><div class="empty">没有符合条件的学生</div></div>';
+  box.appendChild(wrap);
+  if (filtered().length > SHOW_N) {
+    const more = document.createElement('button'); more.className = 'ghost'; more.style.width = '100%'; more.textContent = '显示更多（还有 ' + (filtered().length - SHOW_N) + ' 人）';
+    more.onclick = () => { SHOW_N += 50; renderHome(); };
+    box.appendChild(more);
+  }
+  $('#sort').value = SORT;
+  $('#sort').onchange = e => { SORT = e.target.value; renderHome(); };
+  const q = $('#q');
+  q.oninput = e => { QUERY = e.target.value; renderHome(); const n = $('#q'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } };
+  $('#filters').onclick = e => { const b = e.target.closest('[data-f]'); if (b) { FILTER = b.dataset.f; SHOW_N = 30; renderHome(); } };
+  $('#csv').onclick = exportCsv;
+  wrap.onclick = e => { const c = e.target.closest('.student'); if (c) openStudent(c.dataset.id); };
+}
+
+function studentCard(s) {
+  const sm = s.summary, st = statusOf(s), r = riskOf(s);
+  const pct = sm && sm.goal ? Math.min(100, Math.round((sm.today / sm.goal) * 100)) : 0;
+  const card = document.createElement('div');
+  card.className = 'card student'; card.dataset.id = s.id;
+  card.innerHTML = `<div class="top">
+      <div class="avatar">${esc((s.name || '?').slice(0, 1))}</div>
+      <div class="grow"><div class="row"><span class="name grow">${esc(s.name)}</span><span class="pill ${st.cls}">${esc(st.label)}</span></div>
+        <div class="sub">${s.lastPushAt ? '最近上传 ' + fmtTime(s.lastPushAt) : '等待第一次上传'} · ${s.pushes} 次上传${s.device ? ' · ' + esc(s.device) : ''}</div></div>
+    </div>
+    ${sm ? `
+      <div class="todaybar ${pct < 60 ? 'low' : ''}"><i style="width:${pct}%"></i></div>
+      <div class="sub" style="margin-top:4px">今日 ${sm.today}/${sm.goal} 词 · 连续 ${sm.streak} 天 · 已学 ${sm.learned} 词</div>
+      <div class="mini">
+        <div><b>${sm.accuracy == null ? '—' : sm.accuracy + '%'}</b><span>正确率</span></div>
+        <div><b>${sm.due}</b><span>待复习</span></div>
+        <div><b>${sm.minutes}</b><span>累计分钟</span></div>
+        <div><b>${s.assignments ? s.assignments.unread : 0}</b><span>未读作业</span></div>
+      </div>
+      ${sm.topWrong && sm.topWrong.length ? '<div style="margin-top:8px">' + sm.topWrong.slice(0, 5).map(t => `<span class="chip">${esc(t.w)} <b>×${t.n}</b></span>`).join('') + '</div>' : ''}
+    ` : '<div class="sub" style="margin-top:10px">还没有学习数据</div>'}
+    ${r.key !== 'ok' && r.key !== 'today' ? `<div class="alert ${r.level === 'bad' ? 'bad' : ''}">⚠ ${esc(r.label)}${s.idleDays > 0 ? ' · 已 ' + s.idleDays + ' 天未上传' : ''}</div>` : ''}
+    ${s.assignments && s.assignments.overdue ? `<div class="alert bad">有 ${s.assignments.overdue} 个作业逾期未读</div>` : ''}`;
+  return card;
+}
+
+/* ---------- 学生详情 ---------- */
 async function openStudent(id) {
   const sheet = $('#sheet'), panel = $('#panel');
-  panel.innerHTML = '<div class="empty">加载中…</div>'; sheet.classList.add('on');
+  panel.innerHTML = '<div class="grab"></div><div class="empty">加载中…</div>'; sheet.classList.add('on');
   try {
-    const { student, pushes } = await api('/api/t/student/' + encodeURIComponent(id));
-    const sm = pushes[0] ? pushes[0].summary : null;
-    panel.innerHTML = `<div class="row"><h2 class="grow">${esc(student.name)}</h2><button class="ghost" onclick="document.getElementById('sheet').classList.remove('on')">关闭</button></div>
-      <div class="sub">最近上传 ${fmtTime(student.lastPushAt)} · 共 ${pushes.length} 次（显示最近 20 次）</div>
-      ${sm ? `${sm.groupsDetail && sm.groupsDetail.length ? '<div class="sub" style="margin-top:12px">最近几组首次正确率</div><div class="hist">' + sm.groupsDetail.slice(-10).map(g => `<i class="${g.first < 60 ? 'low' : ''}" style="height:${Math.max(6, Math.min(100, g.first || 0))}%" title="第${g.gno}组 ${g.first}%"></i>`).join('') + '</div>' : ''}` : ''}
-      ${sm && sm.topWrong.length ? '<div style="margin-top:10px">' + sm.topWrong.map(t => `<span class="chip">${esc(t.w)} <b>×${t.n}</b></span>`).join('') + '</div>' : '<div class="sub" style="margin-top:10px">暂无错词</div>'}
-      <div class="row" style="margin-top:14px;gap:8px"><button class="primary grow" id="aiBtn">🤖 AI 点评</button><button id="assignBtn" class="ghost">单独布置</button></div>
-      <div id="reportBox"></div>
-      <div class="sub" style="margin-top:16px">上传记录</div>
-      <div class="tl" style="margin-top:8px">${pushes.map(p => `<div class="it"><div class="row"><span class="grow">${fmtTime(p.at)} · ${p.summary.groups} 组 · 正确率 ${p.summary.accuracy == null ? '—' : p.summary.accuracy + '%'}</span><span class="sub mono">${esc((p.hash || '').slice(0, 8))}</span></div></div>`).join('')}</div>`;
+    const { student, pushes, note, assignments, summary } = await api('/api/t/student/' + encodeURIComponent(id));
+    const sm = summary || (pushes[0] && pushes[0].summary) || null;
+    const days = sm && sm.days ? sm.days : {};
+    const bars = last7().map(d => {
+      const v = Number(days[d.key] || 0), max = Math.max(1, ...last7().map(x => Number(days[x.key] || 0)));
+      return `<i class="${d.today ? 'today' : ''}" style="height:${v ? Math.max(8, Math.round(v / max * 100)) : 4}%" title="${d.key} ${v} 词"><span>${d.lab}</span></i>`;
+    }).join('');
+    const kk = sm && sm.kindStats ? Object.entries(sm.kindStats).sort((a, b) => b[1] - a[1]) : [];
+    const sessions = sm && sm.sessions ? sm.sessions.slice(0, 8) : [];
+    panel.innerHTML = `<div class="grab"></div>
+      <div class="detail-h"><div class="avatar">${esc((student.name || '?').slice(0, 1))}</div>
+        <div class="grow"><h2>${esc(student.name)}</h2><div class="sub">最近上传 ${fmtTime(student.lastPushAt)} · ${pushes.length} 次记录${student.device ? ' · ' + esc(student.device) : ''}</div></div>
+        <button class="ghost" id="closeSheet">关闭</button></div>
+      ${sm ? `<div class="section-t">最近 7 天学习量</div><div class="bars-wrap"><div class="bars">${bars}</div></div>
+        <div class="grid2">
+          <div class="cell"><b>${sm.today}/${sm.goal}</b><span>今日 / 目标</span></div>
+          <div class="cell"><b>${sm.streak}</b><span>连续天数</span></div>
+          <div class="cell"><b>${sm.accuracy == null ? '—' : sm.accuracy + '%'}</b><span>首次正确率</span></div>
+          <div class="cell"><b>${sm.due}</b><span>待复习</span></div>
+          <div class="cell"><b>${sm.minutes}</b><span>累计分钟</span></div>
+          <div class="cell"><b>${sm.activeDays}</b><span>活跃天数</span></div>
+          <div class="cell"><b>${sm.wrongN}</b><span>错词本</span></div>
+          <div class="cell"><b>${sm.stars}</b><span>收藏</span></div>
+          <div class="cell"><b>${sm.learned}</b><span>已学单词</span></div>
+        </div>
+        ${kk.length ? `<div class="section-t">练习构成</div><div>${kk.map(([k, n]) => `<span class="chip">${kindName(k)} ${n} 次</span>`).join('')}</div>` : ''}
+        ${sm.topWrong && sm.topWrong.length ? `<div class="section-t">高频错词</div><div>${sm.topWrong.map(t => `<span class="chip">${esc(t.w)} <b>×${t.n}</b></span>`).join('')}</div>` : '<div class="section-t">高频错词</div><div class="sub">暂无错词</div>'}
+        ${sessions.length ? `<div class="section-t">最近练习</div><div class="tl">${sessions.map(x => `<div class="it"><div class="row"><span class="grow">${kindName(x.kind)} · ${x.first}/${x.total} 首答 · 错 ${x.wrong} · ${fmtDur(x.dur)}</span><span class="sub">${fmtTime(x.ts)}</span></div></div>`).join('')}</div>` : ''}
+      ` : '<div class="empty">还没有上传过学习数据</div>'}
+      <div class="section-t">作业回执</div>
+      ${assignments && assignments.length ? `<div>${assignments.slice(0, 8).map(a => `<div class="assign-item"><div class="grow"><div class="ttl">${esc(a.title || a.text || '作业')}</div><div class="sub">${a.due ? '截止 ' + esc(a.due) : '无截止'} · ${a.read ? '已读' : '未读'}${a.overdue ? ' · 已逾期' : ''}</div></div><span class="pill ${a.read ? 'ok' : a.overdue ? 'bad' : 'warn'}">${a.read ? '已读' : '未读'}</span></div>`).join('')}</div>` : '<div class="sub">还没有布置作业</div>'}
+      <div class="section-t">老师备注</div>
+      <textarea id="note" placeholder="例如：这周重点复习第 3–5 组；注意 appear 的拼写…">${esc(note || '')}</textarea>
+      <div class="row" style="margin-top:8px;gap:8px"><button class="primary" id="saveNote">保存备注</button><button id="assignBtn" class="ghost">单独布置</button></div>
+      <div class="row" style="margin-top:10px;gap:8px"><button class="primary grow" id="aiBtn">🤖 AI 点评</button></div>
+      <div id="reportBox"></div>`;
+    $('#closeSheet').onclick = closeSheet;
+    $('#saveNote').onclick = async () => {
+      try { await api('/api/t/note', { method: 'POST', body: JSON.stringify({ studentId: id, text: $('#note').value }) }); toast('备注已保存'); }
+      catch (e) { toast(e.message); }
+    };
+    $('#assignBtn').onclick = () => { closeSheet(); PENDING_TARGET = id; showTab('tasks'); };
     $('#aiBtn').onclick = async () => {
       const box = $('#reportBox'); box.innerHTML = '<div class="report">正在生成…</div>';
       try { const j = await api('/api/t/analyze', { method: 'POST', body: JSON.stringify({ studentId: id }) }); box.innerHTML = `<div class="report">${esc(j.text)}</div><div class="sub">来源：${j.source === 'llm' ? '大模型' : '本地规则'}</div>`; }
       catch (e) { box.innerHTML = '<div class="report">生成失败：' + esc(e.message) + '</div>'; }
     };
-    $('#assignBtn').onclick = () => { sheet.classList.remove('on'); showTab('tasks'); $('#tg').value = id; };
-  } catch (e) { panel.innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; }
+  } catch (e) { panel.innerHTML = '<div class="grab"></div><div class="empty">' + esc(e.message) + '</div>'; }
+}
+function last7() {
+  const out = [], L = ['日', '一', '二', '三', '四', '五', '六'], now = new Date();
+  for (let i = 6; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i); out.push({ key: localDate(d), lab: L[d.getDay()], today: i === 0 }); }
+  return out;
+}
+function closeSheet() { $('#sheet').classList.remove('on'); }
+
+/* ---------- 作业 ---------- */
+async function renderTasks() {
+  const box = $('#tab-tasks'); box.innerHTML = '<div class="card"><div class="empty">加载中…</div></div>';
+  let items = [];
+  try { const j = await api('/api/t/assignments'); items = j.items || []; } catch (e) { toast(e.message); }
+  box.innerHTML = `<div class="card">
+      <div class="name">布置作业 / 发消息</div>
+      <label>发给谁</label><select id="tg"><option value="all">全班</option>${STUDENTS.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>
+      <label>标题</label><input id="tt" placeholder="例如：背四级第 5–8 组">
+      <label>具体要求 / 消息内容</label><textarea id="td" placeholder="例如：每组首次正确率不低于 70%，错的词抄写一遍"></textarea>
+      <label>截止日期（可空）</label><input id="dd" type="date">
+      <div class="row" style="margin-top:12px;gap:8px"><button class="primary grow" id="sendTask">发布作业</button><button id="sendMsg" class="ghost">只发消息</button></div>
+      <div class="sub" style="margin-top:9px">学生在 App 点「同步」时收到；作业不会锁住学习，只做提醒。回执统计的是学生是否已读。</div>
+    </div>
+    <div class="card"><div class="row"><div class="name grow">最近作业</div><span class="sub">${items.length} 条</span></div>
+      ${items.length ? items.map(a => `<div class="assign-item"><div class="grow"><div class="ttl">${esc(a.title || a.text || '作业')}</div><div class="sub">${a.target === 'all' ? '全班' : '指定学生'} · 截止 ${a.due ? esc(a.due) : '未设'} · 已读 ${a.read}/${a.targets}${a.overdue ? ' · 已逾期' : ''}</div></div><button class="danger" data-del="${a.id}" style="padding:5px 9px;font-size:12px">删除</button></div>`).join('') : '<div class="sub" style="margin-top:8px">还没有布置作业</div>'}
+    </div>`;
+  if (PENDING_TARGET) { const tg = $('#tg'); if (tg) tg.value = PENDING_TARGET; PENDING_TARGET = ''; }
+  $('#sendTask').onclick = async () => {
+    try {
+      await api('/api/t/assign', { method: 'POST', body: JSON.stringify({ title: $('#tt').value, text: $('#td').value, due: $('#dd').value, target: $('#tg').value }) });
+      toast('已发布'); $('#tt').value = ''; $('#td').value = ''; await refresh(); renderTasks();
+    } catch (e) { toast(e.message); }
+  };
+  $('#sendMsg').onclick = async () => {
+    const text = ($('#td').value || '').trim() || ($('#tt').value || '').trim();
+    if (!text) return toast('写点内容');
+    try { await api('/api/t/message', { method: 'POST', body: JSON.stringify({ text, target: $('#tg').value }) }); toast('已发送'); $('#tt').value = ''; $('#td').value = ''; }
+    catch (e) { toast(e.message); }
+  };
+  box.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    if (!confirm('删除这条作业？')) return;
+    try { await api('/api/t/assign/' + encodeURIComponent(b.dataset.del), { method: 'DELETE' }); toast('已删除'); renderTasks(); }
+    catch (e) { toast(e.message); }
+  });
+}
+
+/* ---------- 激活码 ---------- */
+function renderCodes() {
+  const box = $('#tab-codes'); if (!box) return;
+  const unused = CODES.filter(c => !c.used), used = CODES.filter(c => c.used);
+  box.innerHTML = `<div class="card"><div class="row"><div class="grow"><div class="name">未使用的激活码</div><div class="sub">发给学生，用来绑定设备</div></div><span class="pill">${unused.length} 个</span></div>
+    <div style="margin-top:10px">${unused.length ? unused.map(c => `<span class="chip code">${esc(c.code)}</span>`).join('') : '<div class="sub">还没有，点下面生成。</div>'}</div>
+    <div class="row" style="margin-top:12px;gap:8px"><button class="primary" data-gen="1">生成 1 个</button><button class="ghost" data-gen="5">生成 5 个</button></div></div>
+    <div class="card"><div class="name">已使用</div>${used.length ? used.map(c => `<div class="row" style="margin-top:8px"><span class="chip code">${esc(c.code)}</span><span class="grow sub" style="text-align:right">${esc(c.student || '')}</span></div>`).join('') : '<div class="sub" style="margin-top:8px">还没有。</div>'}</div>`;
+  box.querySelectorAll('[data-gen]').forEach(b => b.onclick = async () => {
+    try { const j = await api('/api/t/codes', { method: 'POST', body: JSON.stringify({ count: Number(b.dataset.gen) }) }); toast('已生成：' + j.codes.join(' ')); await refresh(); }
+    catch (e) { toast(e.message); }
+  });
+}
+
+/* ---------- 动态 ---------- */
+async function renderLog() {
+  const box = $('#tab-log'); box.innerHTML = '<div class="card"><div class="empty">加载中…</div></div>';
+  try {
+    const { log } = await api('/api/t/log');
+    const icon = { bind: '🔗', push: '⬆️', codes: '🔑', assign: '📝', 'assign-del': '🗑️', message: '💬', note: '📓', analyze: '🤖', 'login-fail': '⚠️', error: '❗', 'llm-error': '⚠️' };
+    box.innerHTML = `<div class="card">${log.length ? `<div class="tl">${log.map(x => `<div class="it"><div class="row"><span class="grow">${icon[x.kind] || '·'} ${esc(x.msg)}</span><span class="sub">${fmtTime(x.at)}</span></div></div>`).join('')}</div>` : '<div class="empty">暂无动态</div>'}</div>`;
+  } catch (e) { toast(e.message); }
+}
+
+/* ---------- 导出 ---------- */
+async function exportCsv() {
+  try {
+    const r = await fetch('/api/t/export.csv', { headers: { authorization: 'Bearer ' + TOKEN } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const blob = await r.blob(), a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'wordbook-students.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('已导出 CSV');
+  } catch (e) { toast('导出失败：' + e.message); }
 }
 
 /* ---------- 交互 ---------- */
 function showTab(tab) {
   document.querySelectorAll('.seg button,.nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-  ['home', 'codes', 'tasks', 'log'].forEach(t => { $('#tab-' + t).style.display = t === tab ? '' : 'none'; });
+  ['home', 'tasks', 'codes', 'log'].forEach(t => { const n = $('#tab-' + t); if (n) n.style.display = t === tab ? '' : 'none'; });
   if (tab === 'tasks') renderTasks();
   if (tab === 'log') renderLog();
+  if (tab === 'codes') renderCodes();
   window.scrollTo(0, 0);
 }
 $('#seg').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); };
 $('#nav').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); };
-$('#tab-home').onclick = e => { const b = e.target.closest('[data-act=detail]'); if (b) openStudent(b.closest('.card').dataset.id); };
-$('#sheet').onclick = e => { if (e.target.id === 'sheet') e.target.classList.remove('on'); };
+$('#sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
 
 if (TOKEN) enter().catch(() => logout());
 </script>

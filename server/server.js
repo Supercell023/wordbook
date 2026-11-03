@@ -33,6 +33,7 @@ const INITIAL = {
   assignments: [],// {id,at,title,text,due,target}
   messages: [],   // {id,at,text,target}
   acks: {},       // studentId -> {itemId: at}
+  notes: {},      // studentId -> 老师备注
   llm: { url: process.env.LLM_URL || 'https://api.deepseek.com/chat/completions', key: process.env.LLM_KEY || process.env.DEEPSEEK_API_KEY || '', model: process.env.LLM_MODEL || 'deepseek-chat' },
   log: []         // {at, kind, msg}
 };
@@ -111,6 +112,46 @@ function summarize(payload) {
     }
   }
   const topWrong = Object.entries(wrongMap).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([w, n]) => ({ w, n }));
+
+  /* 最近练习：优先用学生上报的 sessions；旧版客户端则从 groups.hist 兼容推导。 */
+  const sessions = [];
+  if (Array.isArray(st.sessions)) {
+    for (const s of st.sessions.slice(0, 60)) {
+      if (!s || typeof s !== 'object') continue;
+      sessions.push({
+        ts: Number(s.ts || 0), first: Number(s.first || 0), total: Math.max(1, Math.min(200, Number(s.total || 0))),
+        dur: Math.max(0, Math.min(86400, Number(s.dur || 0))), wrong: Math.max(0, Number(s.wrong || 0)),
+        kind: String(s.kind || '').slice(0, 16), mode: String(s.mode || '').slice(0, 16), gno: Number(s.gno || 0)
+      });
+    }
+  } else {
+    for (const g of groups) for (const h of (g.hist || [])) {
+      sessions.push({
+        ts: Number(h.ts || 0), first: Number(h.first || 0), total: Math.max(1, Number(h.total || g.total || 20)),
+        dur: Math.max(0, Number(h.dur || 0)), wrong: Array.isArray(h.wrong) ? h.wrong.length : 0,
+        kind: String(h.kind || 'learn').slice(0, 16), mode: String(h.mode || '').slice(0, 16), gno: Number(g.gno || 0)
+      });
+    }
+  }
+  sessions.sort((a, b) => b.ts - a.ts);
+
+  const days = {};
+  if (st.days && typeof st.days === 'object') {
+    for (const [k, v] of Object.entries(st.days)) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) continue;
+      const n = Number(v || 0);
+      if (n > 0) days[k] = Math.min(500, n);
+    }
+  }
+  const activeDays = Object.keys(days).length;
+  const lastStudy = Object.keys(days).sort().pop() || '';
+  const kindStats = {};
+  for (const s of sessions) {
+    const k = s.kind || 'learn';
+    kindStats[k] = (kindStats[k] || 0) + 1;
+  }
+  const today = Math.max(0, Number(st.today || 0));
+  const goal = Math.max(1, Math.min(500, Number(st.goal || 20)));
   return {
     learned: Number(st.learned || 0),
     groups: groups.length,
@@ -119,11 +160,47 @@ function summarize(payload) {
     wrongCount: spoke,
     topWrong,
     groupsDetail: groups.slice(-30),
-    seq: Number(st.seq || 0)
+    seq: Number(st.seq || 0),
+    today, goal, streak: Math.max(0, Number(st.streak || 0)),
+    due: Math.max(0, Number(st.due || 0)),
+    wrongN: Math.max(0, Number(st.wrongN || 0)),
+    stars: Math.max(0, Number(st.stars || 0)),
+    activeDays, lastStudy, days, sessions: sessions.slice(0, 30), kindStats
   };
 }
 
-/* ---------------- 大模型分析 ---------------- */
+/* ---------------- 老师端汇总辅助 ---------------- */
+function localDate(ts = Date.now()) {
+  const d = new Date(ts);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function assignmentsFor(sid) {
+  const ack = DB.acks[sid] || {};
+  return DB.assignments.filter(a => a.target === 'all' || a.target === sid).map(a => ({
+    ...a, read: !!ack[a.id], overdue: !!(a.due && a.due < localDate() && !ack[a.id])
+  })).sort((a, b) => b.at - a.at);
+}
+function assignmentStats(sid) {
+  const items = assignmentsFor(sid);
+  return {
+    total: items.length,
+    read: items.filter(a => a.read).length,
+    unread: items.filter(a => !a.read).length,
+    overdue: items.filter(a => a.overdue).length
+  };
+}
+function riskOf(student) {
+  if (!student.lastPushAt) return { key: 'never', label: '未上传', level: 'muted' };
+  const idle = Math.floor((Date.now() - student.lastPushAt) / 864e5);
+  const sm = student.summary;
+  if (idle >= 7) return { key: 'gone', label: `掉队 ${idle} 天`, level: 'bad' };
+  if (idle >= 2) return { key: 'idle', label: `已 ${idle} 天未学`, level: 'warn' };
+  if (sm && sm.accuracy != null && sm.accuracy < 60) return { key: 'low', label: '正确率偏低', level: 'warn' };
+  if (sm && sm.due >= 30) return { key: 'due', label: '复习积压', level: 'warn' };
+  if (sm && sm.today <= 0) return { key: 'today', label: '今日未学', level: 'muted' };
+  return { key: 'ok', label: '状态正常', level: 'ok' };
+}
+
 function localReport(student, summary) {
   if (!summary) return '这个学生还没有上传过数据。等他上传后，这里会显示学习报告。';
   const lines = [];
@@ -201,7 +278,7 @@ function serveFile(req, res, file, download, cache) {
 const handler = async (req, res) => {
   res.setHeader('access-control-allow-origin', '*');
   res.setHeader('access-control-allow-headers', 'content-type, authorization');
-  res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
+  res.setHeader('access-control-allow-methods', 'GET, POST, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
@@ -319,12 +396,28 @@ const handler = async (req, res) => {
       const students = Object.values(DB.students).map(s => {
         const ps = DB.pushes.filter(x => x.studentId === s.id);
         const last = ps[ps.length - 1];
-        return {
+        const row = {
           id: s.id, name: s.name, createdAt: s.createdAt, lastPushAt: s.lastPushAt, pushes: ps.length,
-          summary: last ? last.summary : null
+          device: s.device || '', summary: last ? last.summary : null,
+          note: DB.notes[s.id] || '', assignments: assignmentStats(s.id)
         };
+        row.risk = riskOf(row);
+        row.idleDays = s.lastPushAt ? Math.floor((Date.now() - s.lastPushAt) / 864e5) : null;
+        return row;
       }).sort((a, b) => (b.lastPushAt || 0) - (a.lastPushAt || 0));
-      return good(res, { students, codes: Object.keys(DB.codes).filter(c => !DB.codes[c].used).length, assignments: DB.assignments.length });
+      const withData = students.filter(s => s.summary);
+      const accs = withData.filter(s => s.summary.accuracy != null).map(s => s.summary.accuracy);
+      const agg = {
+        students: students.length,
+        activeToday: students.filter(s => s.summary && s.summary.today > 0).length,
+        active7: students.filter(s => s.lastPushAt && Date.now() - s.lastPushAt < 7 * 864e5).length,
+        atRisk: students.filter(s => ['never', 'gone', 'idle', 'low', 'due'].includes(s.risk.key)).length,
+        avgAccuracy: accs.length ? Math.round(accs.reduce((a, b) => a + b, 0) / accs.length) : null,
+        totalMinutes: students.reduce((a, s) => a + Number(s.summary && s.summary.minutes || 0), 0),
+        totalLearned: students.reduce((a, s) => a + Number(s.summary && s.summary.learned || 0), 0),
+        unread: students.reduce((a, s) => a + s.assignments.unread, 0)
+      };
+      return good(res, { students, agg, codes: Object.keys(DB.codes).filter(c => !DB.codes[c].used).length, assignments: DB.assignments.length });
     }
 
     if (p.startsWith('/api/t/student/') && req.method === 'GET') {
@@ -332,7 +425,36 @@ const handler = async (req, res) => {
       const id = p.split('/').pop();
       const s = DB.students[id];
       if (!s) return bad(res, 404, '没有这个学生');
-      return good(res, { student: { id: s.id, name: s.name, lastPushAt: s.lastPushAt }, pushes: DB.pushes.filter(x => x.studentId === id).slice(-20).reverse() });
+      const ps = DB.pushes.filter(x => x.studentId === id);
+      const last = ps[ps.length - 1];
+      return good(res, {
+        student: { id: s.id, name: s.name, lastPushAt: s.lastPushAt, createdAt: s.createdAt, device: s.device || '' },
+        pushes: ps.slice(-20).reverse(),
+        note: DB.notes[id] || '',
+        assignments: assignmentsFor(id),
+        summary: last ? last.summary : null
+      });
+    }
+
+    if (p === '/api/t/assignments' && req.method === 'GET') {
+      if (!T(req)) return bad(res, 401, '请先登录');
+      const items = DB.assignments.slice(-40).reverse().map(a => {
+        const targets = a.target === 'all' ? Object.values(DB.students) : [DB.students[a.target]].filter(Boolean);
+        const read = targets.filter(s => (DB.acks[s.id] || {})[a.id]).length;
+        return { ...a, targets: targets.length, read, unread: targets.length - read, overdue: !!(a.due && a.due < localDate()) };
+      });
+      return good(res, { items });
+    }
+
+    if (p.startsWith('/api/t/assign/') && req.method === 'DELETE') {
+      if (!T(req)) return bad(res, 401, '请先登录');
+      const id = p.split('/').pop();
+      const before = DB.assignments.length;
+      DB.assignments = DB.assignments.filter(a => a.id !== id);
+      if (DB.assignments.length === before) return bad(res, 404, '任务不存在');
+      note('assign-del', `删除任务 ${id}`);
+      await save();
+      return good(res, {});
     }
 
     if (p === '/api/t/codes' && req.method === 'GET') {
@@ -379,6 +501,43 @@ const handler = async (req, res) => {
       note('message', text.slice(0, 30));
       await save();
       return good(res, { item });
+    }
+
+    if (p === '/api/t/note' && req.method === 'POST') {
+      if (!T(req)) return bad(res, 401, '请先登录');
+      const b = await readBody(req);
+      const s = DB.students[b.studentId];
+      if (!s) return bad(res, 404, '没有这个学生');
+      const text = String(b.text || '').trim().slice(0, 1000);
+      if (text) DB.notes[s.id] = text; else delete DB.notes[s.id];
+      note('note', `给 ${s.name} ${text ? '写了备注' : '清空了备注'}`);
+      await save();
+      return good(res, { text });
+    }
+
+    if (p === '/api/t/export.csv' && req.method === 'GET') {
+      if (!T(req)) return bad(res, 401, '请先登录');
+      const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+      const rows = [['姓名', '已学词数', '学习组数', '首次正确率', '累计分钟', '今日', '目标', '连续天数',
+        '待复习', '错词数', '收藏', '活跃天数', '最近上传', '状态', '未读作业', '老师备注']];
+      for (const s of Object.values(DB.students)) {
+        const ps = DB.pushes.filter(x => x.studentId === s.id);
+        const sm = ps.length ? ps[ps.length - 1].summary : null;
+        const r = riskOf({ lastPushAt: s.lastPushAt, summary: sm });
+        const as = assignmentStats(s.id);
+        rows.push([s.name, sm ? sm.learned : 0, sm ? sm.groups : 0, sm && sm.accuracy != null ? sm.accuracy : '',
+          sm ? sm.minutes : 0, sm ? sm.today : 0, sm ? sm.goal : '', sm ? sm.streak : 0,
+          sm ? sm.due : 0, sm ? sm.wrongN : 0, sm ? sm.stars : 0, sm ? sm.activeDays : 0,
+          s.lastPushAt ? new Date(s.lastPushAt).toLocaleString('zh-CN') : '未上传', r.label, as.unread, DB.notes[s.id] || '']);
+      }
+      const csv = '\uFEFF' + rows.map(r => r.map(q).join(',')).join('\r\n');
+      res.writeHead(200, {
+        'content-type': 'text/csv; charset=utf-8',
+        'content-disposition': 'attachment; filename="wordbook-students.csv"',
+        'cache-control': 'no-store'
+      });
+      res.end(csv);
+      return;
     }
 
     if (p === '/api/t/analyze' && req.method === 'POST') {

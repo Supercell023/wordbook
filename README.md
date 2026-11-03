@@ -8,7 +8,7 @@
 
 [![词库](https://img.shields.io/badge/%E8%AF%8D%E5%BA%93-12%2C115%20%E8%AF%8D-2ea44f?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![单文件](https://img.shields.io/badge/%E5%8D%95%E6%96%87%E4%BB%B6-5.6MB-1f6feb?style=for-the-badge)](https://github.com/Supercell023/wordbook/releases)
-[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-183%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
+[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-186%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![CI](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml/badge.svg)](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml)
 [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Android%20%C2%B7%20iOS%20%C2%B7%20Web-8957e5?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-MIT-yellow?style=for-the-badge)](LICENSE)
@@ -86,7 +86,7 @@
 
 ### ② 安卓安装包
 
-下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.8.2）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
+下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.9.0）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
 
 ### ③ 安装成 PWA（iPhone / Android 推荐）
 
@@ -165,9 +165,12 @@ cd server && node server.js
 
 老师端是一个适配手机的网页：
 
-- **学生**：学了几组、首次掌握率、错词排行、每次上传的时间线
+- **学生总览**：班级人数、今日已学、平均正确率、需关注人数；近 7 天学习量柱状图与班级高频错词
+- **学生卡**：今日/目标进度、连续天数、正确率、待复习、累计分钟、未读作业、高频错词、风险提示（未上传 / 掉队 / 今日未学 / 正确率低 / 复习积压）
+- **详情**：7 天趋势、9 项指标、练习构成（认词 / 听音 / 填空 / 拼写）、最近练习、作业回执、老师备注
+- **筛选与导出**：按今日未学、需关注、作业未读、低正确率、未上传筛选；一键导出 CSV（含备注与作业状态）
 - **激活码**：一次生成一批，一人一码，绑定即作废
-- **布置**：下发任务和留言，学生下次同步时收到
+- **布置**：下发任务和留言，学生下次同步时收到；能看到已读/未读、逾期人数，可删除
 - **点评**：接入 DeepSeek / MIMO 等任意 OpenAI 兼容接口，没配就用本地规则分析
 
 学生端「上传」按钮在**没有新数据时是灰的**，前后端双重去重，防止乱推。
@@ -182,9 +185,9 @@ sudo bash server/deploy.sh --domain wb.example.com
 
 ## ✅ 测试
 
-- **183 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
+- **186 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
 - **布局检查**：用 Chromium 量每个页面的元素边界，保证 390px 手机宽度下没有横向溢出
-- **服务器测试**：25 项接口断言（激活码、去重、越权、伪造令牌）
+- **服务器测试**：34 项接口断言（激活码、去重、越权、伪造令牌、老师备注、作业回执、CSV 导出）
 
 ## 📚 文档
 

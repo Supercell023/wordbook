@@ -45,7 +45,10 @@ function ok(name, cond, extra) { if (!cond) { console.error('  ✗ ' + name, ext
     ok('同一激活码不能二次绑定', r.status === 409);
 
     console.log('[3] 上传');
-    const data = { learned: 40, seq: 2, minutes: 15, groups: [
+    const data = { learned: 40, seq: 2, minutes: 15, today: 12, goal: 20, streak: 3, due: 4, wrongN: 2, stars: 5,
+      days: { [new Date().toISOString().slice(0, 10)]: 12 },
+      sessions: [{ ts: Date.now(), first: 12, total: 20, dur: 300, wrong: 2, kind: 'learn', gno: 1 }],
+      groups: [
       { gno: 1, range: 0, first: 12, total: 20, wrong: [{ w: 'appear', n: 2 }, { w: 'abandon', n: 1 }] },
       { gno: 2, range: 0, first: 17, total: 20, wrong: [{ w: 'appear', n: 1 }] }
     ] };
@@ -65,10 +68,14 @@ function ok(name, cond, extra) { if (!cond) { console.error('  ✗ ' + name, ext
     ok('统计了组数与正确率', st.summary.groups === 2 && st.summary.accuracy === 73);
     ok('错词合并计数', st.summary.topWrong[0].w === 'appear' && st.summary.topWrong[0].n === 3);
     ok('上传次数', st.pushes === 2);
+    ok('今日目标与连续天数', st.summary.today === 12 && st.summary.goal === 20 && st.summary.streak === 3);
+    ok('每日趋势与练习类型', Object.keys(st.summary.days).length === 1 && st.summary.kindStats.learn === 1);
+    ok('班级汇总', r.body.agg.students === 1 && r.body.agg.activeToday === 1 && r.body.agg.avgAccuracy === 73);
 
     console.log('[5] 任务与消息');
     r = await call('/api/t/assign', { method: 'POST', headers: T, body: JSON.stringify({ title: '背第 3 组', text: '周五检查', target: 'all' }) });
     ok('发布任务', r.status === 200);
+    const assignId = r.body.item.id;
     r = await call('/api/t/message', { method: 'POST', headers: T, body: JSON.stringify({ text: '记得打卡', target: sid }) });
     ok('发消息', r.status === 200);
     r = await call('/api/s/inbox', { headers: S });
@@ -77,8 +84,23 @@ function ok(name, cond, extra) { if (!cond) { console.error('  ✗ ' + name, ext
     ok('标记已读', r.status === 200);
     r = await call('/api/s/inbox', { headers: S });
     ok('已读状态生效', r.body.items.some(x => x.read === true));
+    r = await call('/api/s/ack', { method: 'POST', headers: S, body: JSON.stringify({ id: assignId }) });
+    ok('作业已读回执', r.status === 200);
 
-    console.log('[6] 分析与安全');
+    console.log('[6] 老师端反馈');
+    r = await call('/api/t/note', { method: 'POST', headers: T, body: JSON.stringify({ studentId: sid, text: '重点复习 appear' }) });
+    ok('保存老师备注', r.status === 200 && r.body.text.includes('appear'));
+    r = await call('/api/t/student/' + sid, { headers: T });
+    ok('详情带备注和回执', r.body.note.includes('appear') && r.body.assignments.some(a => a.id === assignId && a.read === true));
+    r = await call('/api/t/assignments', { headers: T });
+    ok('作业列表带已读统计', r.body.items[0].read === 1 && r.body.items[0].unread === 0);
+    const csv = await fetch(BASE + '/api/t/export.csv', { headers: T });
+    const csvText = await csv.text();
+    ok('导出 CSV', csv.status === 200 && /text\/csv/.test(csv.headers.get('content-type') || '') && csvText.includes('小明') && csvText.includes('重点复习 appear'));
+    r = await call('/api/t/assign/' + assignId, { method: 'DELETE', headers: T });
+    ok('删除作业', r.status === 200);
+
+    console.log('[7] 分析与安全');
     r = await call('/api/t/analyze', { method: 'POST', headers: T, body: JSON.stringify({ studentId: sid }) });
     ok('本地报告可用', r.status === 200 && r.body.text.length > 30 && r.body.source === 'local');
     r = await call('/api/t/codes', { headers: { authorization: 'Bearer bogus' } });
