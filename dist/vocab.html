@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#f4efe4">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0e1117">
@@ -580,28 +581,50 @@ function stopHd() {
   hdSeq++;
   if (hdAudio) { try { hdAudio.pause(); hdAudio.removeAttribute('src'); hdAudio.load(); } catch (e) {} hdAudio = null; }
 }
-function hdUrl(t) {
+function hdUrls(t) {
+  const q = String(t).trim();
+  // 有道 dictvoice 只支持单词；整句改用 Google 翻译语音（仍失败则回退系统音色）。
+  if (/\s/.test(q)) {
+    const tl = ttsAccent() === 'uk' ? 'en-GB' : 'en';
+    const qs = 'ie=UTF-8&client=tw-ob&tl=' + tl + '&q=' + encodeURIComponent(q);
+    return [
+      'https://translate.google.com/translate_tts?' + qs,
+      'https://translate.googleapis.com/translate_tts?' + qs
+    ];
+  }
   const type = ttsAccent() === 'uk' ? 1 : 2;
-  return 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(t) + '&type=' + type;
+  return ['https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(q) + '&type=' + type];
 }
 function speakHd(t) {
   try {
     const seq = ++hdSeq;
-    const a = new Audio(hdUrl(t));
-    hdAudio = a;
-    let done = false;
-    const fallback = () => {
+    const urls = hdUrls(t);
+    let idx = 0, done = false, timer = null;
+    const tryNext = () => {
       if (done || seq !== hdSeq) return;
-      done = true;
-      try { a.pause(); a.removeAttribute('src'); a.load(); } catch (e) {}
-      if (hdAudio === a) hdAudio = null;
-      speakSystem(t);
+      if (idx >= urls.length) { done = true; speakSystem(t); return; }
+      const a = new Audio(urls[idx++]);
+      hdAudio = a;
+      let failed = false;
+      const advance = () => {
+        if (failed || done || seq !== hdSeq) return;
+        failed = true;
+        clearTimeout(timer);
+        try { a.pause(); a.removeAttribute('src'); a.load(); } catch (e) {}
+        if (hdAudio === a) hdAudio = null;
+        tryNext();
+      };
+      a.onerror = advance;
+      a.onended = () => {
+        if (seq !== hdSeq) return;
+        done = true; clearTimeout(timer);
+        if (hdAudio === a) hdAudio = null;
+      };
+      const p = a.play();
+      if (p && p.catch) p.catch(advance);
+      timer = setTimeout(() => { if (!done && seq === hdSeq && a.readyState < 2) advance(); }, 1400);
     };
-    a.onerror = fallback;
-    a.onended = () => { if (seq === hdSeq) { done = true; if (hdAudio === a) hdAudio = null; } };
-    const p = a.play();
-    if (p && p.catch) p.catch(fallback);
-    setTimeout(() => { if (!done && seq === hdSeq && a.readyState < 2) fallback(); }, 1400);
+    tryNext();
     return true;
   } catch (e) { return false; }
 }
@@ -1747,6 +1770,7 @@ const ACTIONS = {
     <div class="srow"><span>口音</span>${seg('accent', [['us', '美音'], ['uk', '英音']])}</div>
     <div class="srow"><span>语速</span>${seg('rate', [[0.75, '慢'], [0.9, '标准'], [1.05, '快']])}</div>
     <div class="srow"><span>试听</span><button class="s-btn" data-s="testSay" style="width:auto;margin-top:0">🔊 读 book</button></div>
+    <div style="font-size:12px;line-height:1.5;color:var(--sub);margin:-2px 0 8px">单词用有道发音，整句用 Google 翻译语音；整句高清需能访问 Google，失败会自动回退系统语音。</div>
     <div class="srow"><span>每日目标</span>${seg('goal', [[10, '10 词'], [20, '20 词'], [30, '30 词'], [50, '50 词']])}</div>
     <div class="srow"><span>答错的词自动进生词本</span>${seg('autoStar', [[1, '开'], [0, '关']])}</div>
     <div class="srow" style="display:block;border-top:1px solid var(--line);padding-top:14px;margin-top:16px">
