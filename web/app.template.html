@@ -59,7 +59,7 @@ h1{font-size:30px;margin:4px 0 0;letter-spacing:-.02em;font-weight:800}
 .hero .sub{font-size:12px;color:var(--sub);margin-top:8px}
 .bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:10px}
 .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),#7c8cff)}
-.chips{display:flex;gap:8px;overflow-x:auto;padding:14px 2px 12px;scrollbar-width:none}
+.chips{display:flex;flex-wrap:wrap;gap:7px;padding:14px 2px 12px}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;padding:9px 15px;border-radius:99px;font-size:13px;font-weight:600;
   color:var(--sub);background:var(--card);border:1px solid var(--line);white-space:nowrap;transition:.15s}
@@ -170,7 +170,7 @@ h1{font-size:30px;margin:4px 0 0;letter-spacing:-.02em;font-weight:800}
 .wtag{font-size:12px;padding:2px 7px;border-radius:7px;background:var(--bg);border:1px solid var(--line)}
 .sheet-bg{position:fixed;inset:0;background:rgba(4,8,16,.5);z-index:60;display:flex;align-items:flex-end;
   justify-content:center;animation:fade .16s ease;backdrop-filter:blur(3px)}
-.sheet{width:100%;max-width:520px;max-height:84dvh;overflow-y:auto;background:var(--card);border-radius:26px 26px 0 0;
+.sheet{position:relative;width:100%;max-width:520px;max-height:84dvh;overflow-y:auto;background:var(--card);border-radius:26px 26px 0 0;
   padding:24px 18px calc(env(safe-area-inset-bottom,0px) + 24px);animation:up .2s ease}
 .sheet h3{margin:0 0 14px;font-size:15px;font-weight:800}
 .sheet .s-btn{width:100%;height:50px;border-radius:14px;background:var(--bg);font-size:15px;font-weight:600;
@@ -359,6 +359,7 @@ h1{font-size:34px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
   background:color-mix(in srgb,var(--bg) 70%,var(--card));border:1px solid var(--line);
   color:var(--sub);font-size:13px;line-height:1}
 .wc-acts .sheet-x{margin-left:2px}
+.sheet-x-corner{position:absolute;top:14px;right:14px;z-index:2}
 .wc-stars{margin-top:6px}
 .wc-stars .stars{font-size:12px;color:var(--gold);letter-spacing:1.5px}
 .more-btn{margin-top:11px;padding:7px 11px;border-radius:8px;background:transparent;
@@ -459,6 +460,14 @@ html[data-theme="dark"][data-contrast="high"]{--sub:#c9d3e1;--line:#40506a}
   h1{font-size:30px}.hero .num{font-size:38px}.qword{font-size:33px}
   .app{padding-left:14px;padding-right:14px}
 }
+
+/* 词库选择：首页只展示常用项，其余在设置里开启 */
+.chips-note{font-size:12px;color:var(--sub);margin:-4px 2px 10px;display:flex;gap:6px;align-items:center}
+.chips-note button{border:0;background:none;color:var(--accent);font:inherit;padding:2px 0;cursor:pointer}
+.libpick{display:flex;flex-wrap:wrap;gap:6px}
+.lbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 11px;font:inherit;font-size:12px;cursor:pointer}
+.lbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+html[data-theme="dark"] .lbtn.on{color:#0e1117}
 </style>
 </head>
 <body>
@@ -522,15 +531,23 @@ function starRow(n) {
 
 const RANGES = [
   { k: 0, n: '全部' }, { k: 1, n: '中考' }, { k: 2, n: '高考' }, { k: 4, n: '四级' }, { k: 8, n: '六级' },
-  { k: 256, n: '考研' }, { k: 16, n: '雅思' }, { k: 32, n: '托福' }, { k: 64, n: '沪中考' }, { k: 128, n: '沪高考' }
+  { k: 256, n: '考研' }, { k: 512, n: '专四' }, { k: 1024, n: '专八' }, { k: 2048, n: 'CATTI' },
+  { k: 16, n: '雅思' }, { k: 32, n: '托福' }, { k: 64, n: '沪中考' }, { k: 128, n: '沪高考' }
 ];
 const RANGE_NAME = k => (RANGES.find(r => r.k === k) || RANGES[0]).n;
+const DEFAULT_LIBS = [4, 8, 256, 512, 1024, 2048];
+function visibleLibs() {
+  const a = (Array.isArray(S.cfg.libs) && S.cfg.libs.length) ? S.cfg.libs : DEFAULT_LIBS;
+  return a.filter((k, i) => k && RANGES.some(r => r.k === k) && a.indexOf(k) === i);
+}
+function visibleRanges() { const on = new Set(visibleLibs()); return RANGES.filter(r => r.k === 0 || on.has(r.k)); }
 const POOLS = {};
 RANGES.forEach(r => {
   POOLS[r.k] = r.k === 0 ? WORDS.map(w => w.id) : WORDS.filter(w => (w.mask & r.k)).map(w => w.id);
 });
 const TAG_DEF = [{ b: 1, n: '中考' }, { b: 2, n: '高考' }, { b: 4, n: '四级' }, { b: 8, n: '六级' },
-  { b: 256, n: '考研' }, { b: 16, n: '雅思' }, { b: 32, n: '托福' }, { b: 64, n: '沪中考' }, { b: 128, n: '沪高考' }];
+  { b: 256, n: '考研' }, { b: 512, n: '专四' }, { b: 1024, n: '专八' }, { b: 2048, n: 'CATTI' },
+  { b: 16, n: '雅思' }, { b: 32, n: '托福' }, { b: 64, n: '沪中考' }, { b: 128, n: '沪高考' }];
 
 /* ---------- 发音 ---------- */
 const NATIVE_TTS = !!(window.AndroidTTS && typeof window.AndroidTTS.speak === 'function');
@@ -674,7 +691,7 @@ function defaults() {
   return {
     v: 2, range: 0, seq: 0, learned: {}, groups: [], actives: [], cur: null, lastDone: null,
     days: {}, star: {}, wrong: {}, searchHist: [], fxDay: '',
-    cfg: { maxActive: 3, maxHist: 5, recycleAt: 2, diff: 'balanced', autoSay: 1, goal: 20, autoStar: 1, theme: 'auto', fx: 1, fs: 'md', contrast: 'normal', introOff: 0, hd: 1, accent: 'us', rate: 0.9 },
+    cfg: { maxActive: 3, maxHist: 5, recycleAt: 2, diff: 'balanced', autoSay: 1, goal: 20, autoStar: 1, theme: 'auto', fx: 1, fs: 'md', contrast: 'normal', introOff: 0, hd: 1, accent: 'us', rate: 0.9, libs: DEFAULT_LIBS.slice() },
     sync: { url: '', token: '', name: '', lastHash: '', lastAt: 0, inbox: [] }
   };
 }
@@ -1085,6 +1102,8 @@ const sessKind = a => a.kind === 'learn' ? '学习中' : a.kind === 'group' ? '�
 
 VIEWS.home = function () {
   const st = rangeStats();
+  const vr = visibleRanges();
+  const hiddenLibs = RANGES.filter(r => r.k && !vr.some(x => x.k === r.k)).length;
   const due = dueIds().length;
   const pct = pctOf(st.learned, st.pool);
   const acts = S.actives.slice().sort((a, b) => b.act - a.act);
@@ -1135,7 +1154,8 @@ VIEWS.home = function () {
     ${S.fxDay === todayKey() ? '<div class="reward">✦ 今日奖励已领取</div>' : ''}
   </div>
   ${intro}
-  <div class="chips">${RANGES.map(r => `<button class="chip ${S.range === r.k ? 'on' : ''}" data-act="range" data-id="${r.k}">${r.n}</button>`).join('')}</div>
+  <div class="chips">${vr.map(r => `<button class="chip ${S.range === r.k ? 'on' : ''}" data-act="range" data-id="${r.k}">${r.n}</button>`).join('')}</div>
+  ${hiddenLibs ? `<div class="chips-note">还有 ${hiddenLibs} 个词库未显示 · <button data-act="settings">在设置里选择</button></div>` : ''}
   <div class="actions">${primary}${sub}</div>
   ${due ? `<button class="cta ghost" data-act="dueReview" style="margin-bottom:10px"><span>🔁 今日复习</span><small>${due} 个词到期</small></button>` : ''}
   ${others ? `<div class="blist" style="flex:none;margin-top:10px">${others}</div>` : ''}
@@ -1764,10 +1784,17 @@ const ACTIONS = {
   home() { go('home'); },
   settings() {
     const c = S.cfg;
+    const libset = new Set(visibleLibs());
     const seg = (key, vals) => `<div class="seg">${vals.map(v => `<button class="sbtn ${String(c[key]) === String(v[0]) ? 'on' : ''}" data-s="${key}" data-v="${v[0]}">${v[1]}</button>`).join('')}</div>`;
     openModal(`
+    <button class="sheet-x sheet-x-corner" data-act="closeSheet" aria-label="关闭设置">✕</button>
     <h3>设置</h3>
     <div class="srow"><span>外观</span>${seg('theme', [['auto', '跟随系统'], ['light', '浅色'], ['dark', '深色']])}</div>
+    <div class="srow" style="display:block">
+      <div style="margin-bottom:8px">首页显示词库</div>
+      <div class="libpick">${RANGES.filter(r => r.k).map(r => `<button class="lbtn ${libset.has(r.k) ? 'on' : ''}" data-s="lib" data-v="${r.k}">${r.n}</button>`).join('')}</div>
+      <div class="tip" style="margin-top:7px">只影响首页按钮，不影响已学记录；不选就只显示「全部」。</div>
+    </div>
     <div class="srow"><span>字号</span>${seg('fs', [['md', '标准'], ['lg', '大'], ['xl', '特大']])}</div>
     <div class="srow"><span>对比度</span>${seg('contrast', [['normal', '标准'], ['high', '高对比']])}</div>
     <div class="srow"><span>完成奖励动效</span>${seg('fx', [[1, '开'], [0, '关']])}</div>
@@ -1983,6 +2010,13 @@ document.addEventListener('click', e => {
   if (k === 'diff') { S.cfg.diff = b.dataset.v; save(); ACTIONS.settings(); return; }
   if (k === 'theme') { S.cfg.theme = b.dataset.v; save(); applyTheme(); ACTIONS.settings(); return; }
   if (k === 'fs' || k === 'contrast') { S.cfg[k] = b.dataset.v; save(); applyDisplay(); ACTIONS.settings(); return; }
+  if (k === 'lib') {
+    const v = Number(b.dataset.v), cur = visibleLibs().slice();
+    const next = cur.includes(v) ? cur.filter(x => x !== v) : cur.concat(v);
+    S.cfg.libs = next.sort((x, y) => x - y);
+    if (S.range && !S.cfg.libs.includes(S.range)) S.range = 0;
+    save(); render(); ACTIONS.settings(); return;
+  }
   if (k === 'fx') { S.cfg.fx = Number(b.dataset.v); save(); ACTIONS.settings(); return; }
   if (k === 'hd') { S.cfg.hd = Number(b.dataset.v); save(); ACTIONS.settings(); toast(S.cfg.hd ? '高清发音：联网，优先有道' : '已切回系统语音'); return; }
   if (k === 'accent') { S.cfg.accent = b.dataset.v; lastAccent = ''; save(); ACTIONS.settings(); return; }

@@ -9,8 +9,11 @@
 | `ecdict.csv`（不提交） | 77 万词条，含音标、释义、BNC/COCA 词频、考试标签 | [skywind3000/ECDICT](https://github.com/skywind3000/ECDICT) | MIT |
 | `sh_zk.json` | 上海中考词汇 1610 条（词 + 词性 + 释义） | 《上海市初中英语词汇表（2020 年版）》，PDF 取自 [mahavivo/english-wordlists](https://github.com/mahavivo/english-wordlists) | 原表版权归上海市教委/上海教育出版社，仅作个人学习用途 |
 | `sh_gk.json` | 上海高考开放词库 8561 条（scope=0 为核心 6465 条） | [gk.openerp.cn/atlas](https://gk.openerp.cn/atlas/index.json) | CC BY 4.0 |
+| `tem4.tsv` | 专四 4,025 词（词 + 中文释义） | [Qwerty Learner](https://github.com/RealKai42/qwerty-learner) `Level4luan_2_T.json` | GPL-3.0 |
+| `tem8.tsv` | 专八 12,197 词（与专四重叠 3,942） | 同上 `Level8luan_2_T.json` | GPL-3.0 |
+| `catti.tsv` | CATTI 三级口译常用词汇，过滤后 3,111 条术语/短语 | [sherylling1986-beep/catti-vocabulary](https://github.com/sherylling1986-beep/catti-vocabulary) | 上游未声明，商用前请核对 |
 
-`tools/build.py` 用 ECDICT 的 tag 字段（`zk/gk/cet4/cet6/ielts/toefl`）切出中考、高考、四级、六级、雅思、托福六个词库，再合并上海两个词库，去停用词后共约 12,115 词。
+`tools/build.py` 用 ECDICT 的 tag 字段（`zk/gk/cet4/cet6/ky/ielts/toefl`）切出中考、高考、四级、六级、考研、雅思、托福七个词库，合并上海两个词库，再用 `tem4/tem8/catti` 外挂词表补词库位；去重去停用词后共 **18,337** 词。
 
 由于 ETS / British Council 从未发布官方 IELTS/TOEFL 词表，这里的雅思、托福词库来自 ECDICT 的 `ielts`、`toefl` 标签，属于社区整理版本。
 

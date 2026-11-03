@@ -7,7 +7,7 @@
 词库自己建 · 数据全在本地 · 服务器只帮你收作业
 
 [![词库](https://img.shields.io/badge/%E8%AF%8D%E5%BA%93-12%2C115%20%E8%AF%8D-2ea44f?style=for-the-badge)](https://github.com/Supercell023/wordbook)
-[![单文件](https://img.shields.io/badge/%E5%8D%95%E6%96%87%E4%BB%B6-5.6MB-1f6feb?style=for-the-badge)](https://github.com/Supercell023/wordbook/releases)
+[![单文件](https://img.shields.io/badge/%E5%8D%95%E6%96%87%E4%BB%B6-7.2MB-1f6feb?style=for-the-badge)](https://github.com/Supercell023/wordbook/releases)
 [![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-186%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![CI](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml/badge.svg)](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml)
 [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Android%20%C2%B7%20iOS%20%C2%B7%20Web-8957e5?style=for-the-badge)](https://github.com/Supercell023/wordbook)
@@ -26,6 +26,9 @@
 <img src="docs/screenshots/shot-fx.png" width="44%" alt="完成奖励">
 <br><sub>暗夜模式 · 完成奖励</sub>
 <br>
+<img src="docs/screenshots/shot-libs.png" width="44%" alt="设置里选择首页显示哪些词库">
+<br><sub>词库入口可以自己增减</sub>
+<br>
 <img src="docs/screenshots/shot-listen.png" width="30%" alt="听音选义">
 <img src="docs/screenshots/shot-cloze.png" width="30%" alt="例句填空">
 <img src="docs/screenshots/shot-wrong.png" width="30%" alt="错题本">
@@ -39,7 +42,7 @@
 
 | | 市面上的背单词软件 | 词书 |
 |---|---|---|
-| 词库 | 平台定，改不了 | **自己建**：中考/高考/四级/六级/雅思/托福 + 上海中考/上海高考 |
+| 词库 | 平台定，改不了 | **自己选**：中考/高考/四级/六级/考研/专四/专八/CATTI/雅思/托福 + 上海两库，首页只放常看的 |
 | 学习数据 | 存在别人服务器上 | **全在本地**，断网也能背，导出就是一份 JSON |
 | 分组 | 算法决定，你只能跟着走 | **一组 20 词，全部点「掌握」才算过**，不熟的本组重考 |
 | 复习 | 只能按它安排的来 | **按原组复习**，或**跨组随机重组 20 词** |
@@ -86,7 +89,7 @@
 
 ### ② 安卓安装包
 
-下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.10.0）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
+下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.11.0）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
 
 ### ③ 安装成 PWA（iPhone / Android 推荐）
 
@@ -105,6 +108,9 @@
 | 四级 | 3,817 | 100% |
 | 六级 | 5,391 | 100% |
 | 考研 | 4,770 | 98.3% |
+| 专四 | 3,998 | 81.8% |
+| 专八 | 11,912 | 70.0% |
+| CATTI | 3,104 | 12.7% |
 | 雅思 | 4,946 | 99.6% |
 | 托福 | 6,949 | 95.1% |
 | 上海中考 | 1,610 | 100% |
@@ -112,15 +118,18 @@
 
 （一个词可以属于多个词库，所以加起来不等于总数）
 
-合计 **12,194** 词，例句覆盖 **96.5%**（11,773 条），同族词覆盖 **49.7%**（6,055 个），音节全部自动切分（8,891 个多音节词）。
+合计 **18,337** 词，例句覆盖 **64.2%**（11,773 条），同族词覆盖 **39.0%**（7,152 个），近义 10,721 / 反义 2,228。
 
 > 雅思、托福没有官方词表（ETS 和英国文化协会都没发布过），这里用的是社区整理版，来自 ECDICT 的考试标签。
+> 专四/专八用 Qwerty Learner 的社区词表；CATTI 用三级口译常用词汇整理版，很多是短语和术语，所以例句覆盖天然偏低。
+
+首页默认只放 7 个常用入口（全部/四级/六级/考研/专四/专八/CATTI），其余词库在「设置 → 首页显示词库」里自行增减，不选就只留「全部」。
 
 ## 🏗 架构
 
 ```text
   ECDICT ─┐
-  上海中考 ─┼─▶ tools/build.py ─▶ dist/vocab.html（5.6MB 单文件）
+  上海中考 ─┼─▶ tools/build.py ─▶ dist/vocab.html（7.2MB 单文件）
   上海高考 ─┤        │                  ├─▶ 浏览器直接打开
   Tatoeba ─┘        │                  ├─▶ server/public ─▶ 学生手机
   WordNet ──────────┘                  ├─▶ android/assets ─▶ APK
@@ -186,7 +195,7 @@ sudo bash server/deploy.sh --domain wb.example.com
 
 ## ✅ 测试
 
-- **188 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
+- **194 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
 - **布局检查**：用 Chromium 量每个页面的元素边界，保证 390px 手机宽度下没有横向溢出
 - **服务器测试**：34 项接口断言（激活码、去重、越权、伪造令牌、老师备注、作业回执、CSV 导出）
 

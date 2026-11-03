@@ -12,8 +12,12 @@ DATA = os.path.join(ROOT, "data")
 SRC = os.path.join(DATA, "ecdict.csv")
 TPL = os.path.join(ROOT, "web", "app.template.html")
 OUT = os.path.join(ROOT, "dist", "vocab.html")
-BITS = {"zk": 1, "gk": 2, "cet4": 4, "cet6": 8, "ky": 256, "ielts": 16, "toefl": 32, "sh-zk": 64, "sh-gk": 128}
-LEVEL = ["zk", "sh-zk", "gk", "sh-gk", "cet4", "cet6", "ky", "ielts", "toefl"]
+BITS = {"zk": 1, "gk": 2, "cet4": 4, "cet6": 8, "ky": 256, "tem4": 512, "tem8": 1024,
+        "catti": 2048, "ielts": 16, "toefl": 32, "sh-zk": 64, "sh-gk": 128}
+LEVEL = ["zk", "sh-zk", "gk", "sh-gk", "cet4", "cet6", "ky", "tem4", "tem8", "ielts", "toefl", "catti"]
+# 外挂词表：专四/专八/CATTI。词本身在 ECDICT 里时只加词库位，不改 ECDICT 释义；
+# 不在 ECDICT 里的短语/术语，用词表自带中文释义补一条。
+EXTRA_BITS = {"tem4": 512, "tem8": 1024, "catti": 2048}
 BASE = DATA
 
 # 功能词 / 极基础词：学习者都会，放进词库只会浪费前几组
@@ -63,6 +67,7 @@ POS_MAP = {
     "num": "num.", "num.": "num.",
     "art": "art.", "art.": "art.",
     "int": "interj.", "int.": "interj.", "interj": "interj.", "interj.": "interj.",
+    "phr": "phr.", "phr.": "phr.",
 }
 
 # 专业领域标签（[计] → 计算机）
@@ -565,8 +570,33 @@ def score_example(toks, e, common):
     return (rare, len(e))
 
 
+
+def load_extras():
+    """读取 data/{tem4,tem8,catti}.tsv。返回 {小写词: {w, mask, tr}}。
+    同一词命中多个词表时合并 mask；释义优先取第一个非空。"""
+    out = {}
+    for name, bit in EXTRA_BITS.items():
+        path = os.path.join(DATA, name + ".tsv")
+        if not os.path.exists(path):
+            continue
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                parts = line.rstrip("\n").split("\t")
+                w = (parts[0] or "").strip()
+                if not w or len(w) > 48:
+                    continue
+                k = w.lower()
+                tr = (parts[1] if len(parts) > 1 else "").strip()
+                cur = out.setdefault(k, {"w": w, "mask": 0, "tr": ""})
+                cur["mask"] |= bit
+                if not cur["tr"] and tr:
+                    cur["tr"] = tr
+    return out
+
+
 def main():
     rows, allfreq = {}, {}
+    extra = load_extras()
     # 先预载上海词库的键：这些词即使被 STOP 挡住，也要从 ECDICT 取丰富释义，
     # 但 mask 仍只保留上海词库位，避免改变原有词库数量。
     sh_need = set()
@@ -600,6 +630,8 @@ def main():
             for t in tags:
                 if t in BITS:
                     bits |= BITS[t]
+            if key in extra:
+                bits |= extra[key]["mask"]
             if not bits and key not in sh_need:
                 continue
             tr = (r.get("translation") or "").strip()
@@ -619,8 +651,13 @@ def main():
                 if fallback:
                     senses = [["", [fallback]]]
             fill_pos(senses, defs, w)
+            if any(not sn[0] for sn in senses):
+                fill_pos(senses, defs, w, "phr." if " " in w else "n.")
             freq = allfreq.get(key) or 10 ** 7
-            lvl = max((LEVEL.index(t) for t in tags if t in BITS and (BITS[t] & bits)), default=0)
+            lv = [LEVEL.index(t) for t in tags if t in BITS and (BITS[t] & bits)]
+            if key in extra:
+                lv += [LEVEL.index(n) for n, b in EXTRA_BITS.items() if extra[key]["mask"] & b]
+            lvl = max(lv, default=0)
             ph = (r.get("phonetic") or "").strip().replace("ә", "ə").replace("ɡ", "g")
             old = rows.get(key)
             if old and old["freq"] <= freq and old["lvl"] >= lvl:
@@ -682,6 +719,26 @@ def main():
             rows[k] = {"w": k, "ph": d["ipa"].strip("/") if d.get("ipa") else "",
                        "mask": BITS["sh-gk"], "freq": 10 ** 7, "lvl": LEVEL.index("sh-gk"),
                        "senses": senses, "spec": spec, "defs": [], "forms": [], "stars": 0}
+
+    # 外挂词表里 ECDICT 没有的词（多为 CATTI 术语/短语）补一条基础记录
+    for k, v in extra.items():
+        if k in rows:
+            continue
+        w = v["w"]
+        tr = re.sub(r"\s+", " ", v["tr"]).strip()
+        if not tr:
+            continue
+        senses, spec = parse_senses(tr)
+        if not senses:
+            senses = [["", [tr[:80]]]]
+        hint = "phr." if " " in w else "n."
+        fill_pos(senses, [], w, hint)
+        if not senses:
+            continue
+        rows[k] = {"w": w, "ph": "", "mask": v["mask"],
+                   "freq": 10 ** 7,
+                   "lvl": max((LEVEL.index(n) for n, b in EXTRA_BITS.items() if v["mask"] & b), default=0),
+                   "senses": senses, "spec": spec, "defs": [], "forms": [], "stars": 0}
 
     data = sorted(rows.values(), key=lambda x: (x["lvl"], x["freq"], x["w"].lower()))
     for d in data:
