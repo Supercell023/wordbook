@@ -8,7 +8,7 @@
 
 [![词库](https://img.shields.io/badge/%E8%AF%8D%E5%BA%93-18%2C337%20%E8%AF%8D-2ea44f?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![单文件](https://img.shields.io/badge/%E5%8D%95%E6%96%87%E4%BB%B6-7.2MB-1f6feb?style=for-the-badge)](https://github.com/Supercell023/wordbook/releases)
-[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-200%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
+[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-201%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![CI](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml/badge.svg)](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml)
 [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Android%20%C2%B7%20iOS%20%C2%B7%20Web-8957e5?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-MIT-yellow?style=for-the-badge)](LICENSE)
@@ -89,7 +89,7 @@
 
 ### ② 安卓安装包
 
-下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.11.2）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
+下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.11.3）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
 
 ### ③ 安装成 PWA（iPhone / Android 推荐）
 
@@ -195,7 +195,7 @@ sudo bash server/deploy.sh --domain wb.example.com
 
 ## ✅ 测试
 
-- **200 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
+- **201 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
 - **布局检查**：用 Chromium 量每个页面的元素边界，保证 390px 手机宽度下没有横向溢出
 - **服务器测试**：34 项接口断言（激活码、去重、越权、伪造令牌、老师备注、作业回执、CSV 导出）
 

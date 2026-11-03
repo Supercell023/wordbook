@@ -1762,7 +1762,7 @@ async function syncBind() {
   try {
     const j = await syncPost('/api/s/bind', { code, name, device: (navigator.userAgent || '').slice(0, 60) }, false);
     S.sync.token = j.token; S.sync.name = j.name; S.sync.lastHash = ''; S.sync.lastAt = 0;
-    save(); if (modalEl) ACTIONS.settings(); render(); toast('绑定成功 ✓'); syncInbox();
+    save(); if (modalEl) ACTIONS.settings(true); render(); toast('绑定成功 ✓'); syncInbox();
   } catch (e) { toast('绑定失败：' + e.message); }
 }
 async function syncPush() {
@@ -1774,7 +1774,7 @@ async function syncPush() {
   try {
     const j = await syncPost('/api/s/push', { hash, data: pushData() });
     S.sync.lastHash = hash; S.sync.lastAt = j.at || Date.now(); save();
-    if (modalEl) ACTIONS.settings(); render(); toast('已上传 ✓'); syncInbox();
+    if (modalEl) ACTIONS.settings(true); render(); toast('已上传 ✓'); syncInbox();
   } catch (e) {
     if (e.status === 401) { S.sync.token = ''; save(); toast('绑定失效了，请重新绑定'); }
     else toast('上传失败：' + e.message);
@@ -1800,11 +1800,11 @@ function syncBar() {
 /* ---------- 动作 ---------- */
 const ACTIONS = {
   home() { go('home'); },
-  settings() {
+  settings(keep) {
     const c = S.cfg;
     const libset = new Set(visibleLibs());
     const seg = (key, vals) => `<div class="seg">${vals.map(v => `<button class="sbtn ${String(c[key]) === String(v[0]) ? 'on' : ''}" data-s="${key}" data-v="${v[0]}">${v[1]}</button>`).join('')}</div>`;
-    openModal(`
+    const html = `
     <button class="sheet-x sheet-x-corner" data-act="closeSheet" aria-label="关闭设置">✕</button>
     <h3>设置</h3>
     <div class="srow"><span>外观</span>${seg('theme', [['auto', '跟随系统'], ['light', '浅色'], ['dark', '深色']])}</div>
@@ -1847,7 +1847,12 @@ const ACTIONS = {
     <button class="s-btn" data-s="export" style="margin-top:6px">导出备份（.json）</button>
     <button class="s-btn" data-s="import">从备份导入</button>
     <button class="s-btn danger" data-s="reset">清空全部学习数据</button>
-    <div class="tip">词库 ${N} 词 · demo 0.5<br>未完成的组超过上限时，最久没动的那组会作废，它的词回到词库。</div>`);
+    <div class="tip">词库 ${N} 词 · demo 0.5<br>未完成的组超过上限时，最久没动的那组会作废，它的词回到词库。</div>`;
+    const sh = keep && modalEl ? modalEl.querySelector('.sheet') : null;
+    if (!sh) { openModal(html); return; }
+    const st = sh.scrollTop;
+    sh.innerHTML = `<div class="sheet-grab" aria-hidden="true"></div>` + html;
+    sh.scrollTop = st;
   },
   range(id) {
     const n = Number(id); if (S.range === n) return;
@@ -2029,22 +2034,22 @@ document.addEventListener('click', e => {
   if (!b || !modalEl) return;
   const k = b.dataset.s;
   if (['maxActive', 'maxHist', 'recycleAt', 'autoSay', 'goal', 'autoStar'].includes(k)) {
-    S.cfg[k] = Number(b.dataset.v); save(); ACTIONS.settings(); return;
+    S.cfg[k] = Number(b.dataset.v); save(); ACTIONS.settings(true); return;
   }
-  if (k === 'diff') { S.cfg.diff = b.dataset.v; save(); ACTIONS.settings(); return; }
-  if (k === 'theme') { S.cfg.theme = b.dataset.v; save(); applyTheme(); ACTIONS.settings(); return; }
-  if (k === 'fs' || k === 'contrast') { S.cfg[k] = b.dataset.v; save(); applyDisplay(); ACTIONS.settings(); return; }
+  if (k === 'diff') { S.cfg.diff = b.dataset.v; save(); ACTIONS.settings(true); return; }
+  if (k === 'theme') { S.cfg.theme = b.dataset.v; save(); applyTheme(); ACTIONS.settings(true); return; }
+  if (k === 'fs' || k === 'contrast') { S.cfg[k] = b.dataset.v; save(); applyDisplay(); ACTIONS.settings(true); return; }
   if (k === 'lib') {
     const v = Number(b.dataset.v), cur = visibleLibs();
     const next = cur.includes(v) ? cur.filter(x => x !== v) : cur.concat(v);
     S.cfg.libs = next.sort((a, b) => a - b);
     if (S.range && !S.cfg.libs.includes(S.range)) S.range = 0;
-    save(); render(); ACTIONS.settings(); return;
+    save(); render(); ACTIONS.settings(true); return;
   }
-  if (k === 'fx') { S.cfg.fx = Number(b.dataset.v); save(); ACTIONS.settings(); return; }
-  if (k === 'hd') { S.cfg.hd = Number(b.dataset.v); save(); ACTIONS.settings(); toast(S.cfg.hd ? '高清发音：联网，优先有道' : '已切回系统语音'); return; }
-  if (k === 'accent') { S.cfg.accent = b.dataset.v; lastAccent = ''; save(); ACTIONS.settings(); return; }
-  if (k === 'rate') { S.cfg.rate = Number(b.dataset.v); lastNativeRate = 0; save(); ACTIONS.settings(); return; }
+  if (k === 'fx') { S.cfg.fx = Number(b.dataset.v); save(); ACTIONS.settings(true); return; }
+  if (k === 'hd') { S.cfg.hd = Number(b.dataset.v); save(); ACTIONS.settings(true); toast(S.cfg.hd ? '高清发音：联网，优先有道' : '已切回系统语音'); return; }
+  if (k === 'accent') { S.cfg.accent = b.dataset.v; lastAccent = ''; save(); ACTIONS.settings(true); return; }
+  if (k === 'rate') { S.cfg.rate = Number(b.dataset.v); lastNativeRate = 0; save(); ACTIONS.settings(true); return; }
   if (k === 'testSay') { speak('book'); return; }
   if (k === 'syncbind') { syncBind(); return; }
   if (k === 'syncpush') { syncPush(); return; }
