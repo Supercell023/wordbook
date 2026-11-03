@@ -54,8 +54,8 @@ function finishYes(limit) {
 
 console.log('\n[1] 首页初始状态');
 ok(text('h1').includes('词书'), '标题渲染');
-ok(count('.chip') === 9, '9 个词库范围');
-ok(heroNum() === '0/12115', '全部词库 12115 词，已学 0（实际 ' + heroNum() + '）');
+ok(count('.chip') === 10, '10 个词库范围');
+ok(heroNum() === '0/12194', '全部词库 12194 词，已学 0（实际 ' + heroNum() + '）');
 ok(doc.body.textContent.includes('开始第 1 组'), '首页显示开始第 1 组');
 ok(count('.arow') === 0, '没有未完成组');
 
@@ -131,7 +131,7 @@ click('startQuiz');
 ok(finishYes(), '第 5 组完成');
 ok(doc.body.textContent.includes('第 5 组完成'), '完成页显示第 5 组');
 click('home');
-ok(heroNum() === '40/12115', '首页已学 40 词（实际 ' + heroNum() + '）');
+ok(heroNum() === '40/12194', '首页已学 40 词（实际 ' + heroNum() + '）');
 click('book');
 st = state();
 ok(st.groups.length === 2, '词本里有 2 组');
@@ -181,7 +181,7 @@ ok(!!doc.querySelector('.empty'), '中考词库下没有已背组');
 click('bookAll');
 ok(count('.brow') === 2, '切换后显示全部词库的组');
 click('home'); click('range', 0);
-ok(heroNum().includes('/12115'), '切回全部词库');
+ok(heroNum().includes('/12194'), '切回全部词库');
 
 console.log('\n[8] 混合复习');
 click('mix');
@@ -277,7 +277,10 @@ console.log('\n[12] 音节划分 / 同族词 / 新增词库');
     el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
   };
   const ev = js => w.eval(js);
+  ok([...doc.querySelectorAll('.chip')].map(e => e.textContent).join().includes('考研'), '有考研词库');
   ok([...doc.querySelectorAll('.chip')].map(e => e.textContent).join().includes('沪中考'), '有沪中考词库');
+  clk('range', 256);
+  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/4770'), '考研词库 4770 词');
   ok(doc.body.textContent.includes('沪高考'), '有沪高考词库');
   clk('range', 16);
   ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/4946'), '雅思词库 4946 词');

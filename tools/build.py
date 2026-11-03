@@ -12,8 +12,8 @@ DATA = os.path.join(ROOT, "data")
 SRC = os.path.join(DATA, "ecdict.csv")
 TPL = os.path.join(ROOT, "web", "app.template.html")
 OUT = os.path.join(ROOT, "dist", "vocab.html")
-BITS = {"zk": 1, "gk": 2, "cet4": 4, "cet6": 8, "ielts": 16, "toefl": 32, "sh-zk": 64, "sh-gk": 128}
-LEVEL = ["zk", "sh-zk", "gk", "sh-gk", "cet4", "cet6", "ielts", "toefl"]
+BITS = {"zk": 1, "gk": 2, "cet4": 4, "cet6": 8, "ky": 256, "ielts": 16, "toefl": 32, "sh-zk": 64, "sh-gk": 128}
+LEVEL = ["zk", "sh-zk", "gk", "sh-gk", "cet4", "cet6", "ky", "ielts", "toefl"]
 BASE = DATA
 
 # 功能词 / 极基础词：学习者都会，放进词库只会浪费前几组

@@ -522,7 +522,7 @@ function starRow(n) {
 
 const RANGES = [
   { k: 0, n: '全部' }, { k: 1, n: '中考' }, { k: 2, n: '高考' }, { k: 4, n: '四级' }, { k: 8, n: '六级' },
-  { k: 16, n: '雅思' }, { k: 32, n: '托福' }, { k: 64, n: '沪中考' }, { k: 128, n: '沪高考' }
+  { k: 256, n: '考研' }, { k: 16, n: '雅思' }, { k: 32, n: '托福' }, { k: 64, n: '沪中考' }, { k: 128, n: '沪高考' }
 ];
 const RANGE_NAME = k => (RANGES.find(r => r.k === k) || RANGES[0]).n;
 const POOLS = {};
@@ -530,7 +530,7 @@ RANGES.forEach(r => {
   POOLS[r.k] = r.k === 0 ? WORDS.map(w => w.id) : WORDS.filter(w => (w.mask & r.k)).map(w => w.id);
 });
 const TAG_DEF = [{ b: 1, n: '中考' }, { b: 2, n: '高考' }, { b: 4, n: '四级' }, { b: 8, n: '六级' },
-  { b: 16, n: '雅思' }, { b: 32, n: '托福' }, { b: 64, n: '沪中考' }, { b: 128, n: '沪高考' }];
+  { b: 256, n: '考研' }, { b: 16, n: '雅思' }, { b: 32, n: '托福' }, { b: 64, n: '沪中考' }, { b: 128, n: '沪高考' }];
 
 /* ---------- 发音 ---------- */
 const NATIVE_TTS = !!(window.AndroidTTS && typeof window.AndroidTTS.speak === 'function');
