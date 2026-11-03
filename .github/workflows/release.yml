@@ -1,0 +1,41 @@
+name: Release
+
+# 推送 v* 标签时自动创建 GitHub Release，并附上单文件 HTML 与 APK。
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: |
+            ## 词书 ${{ github.ref_name }}
+
+            - 学生端：SRS 间隔复习、7 天到期预测、听音选义、例句填空、错题本、薄弱词
+            - 内容：多义项、英英释义、词形变化、同族词/近反义词、柯林斯星级
+            - 体验：宋体 + Times New Roman、暗夜模式、字号/高对比、完成奖励
+            - 发音：单词有道、整句 Google，失败自动回退系统 TTS
+            - 老师端：班级总览、风险筛选、7 天趋势、高频错词、作业回执、备注与 CSV 导出
+            - 测试：186 项学生端 + 34 项服务器端断言
+
+            附件：
+            - `vocab.html`：单文件网页版，可直接打开或部署
+            - `wordbook.apk`：Android 安装包（v0.9.0，versionCode 8）
+          files: |
+            dist/vocab.html
+            android/wordbook.apk
+          fail_on_unmatched_files: true
+          generate_release_notes: false
