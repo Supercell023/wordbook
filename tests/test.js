@@ -600,6 +600,16 @@ console.log('\n[23] 搜索历史、词卡返回栈与显示设置');
   const high = [...doc.querySelectorAll('[data-s="contrast"]')].find(e => e.dataset.v === 'high');
   high.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
   ok(doc.documentElement.dataset.contrast === 'high', '高对比度设置生效');
+
+  const hdOff = [...doc.querySelectorAll('[data-s="hd"]')].find(e => e.dataset.v === '0');
+  hdOff.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok(w.eval('S.cfg.hd') === 0, '发音可切回系统语音');
+  const uk = [...doc.querySelectorAll('[data-s="accent"]')].find(e => e.dataset.v === 'uk');
+  uk.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok(w.eval("S.cfg.accent") === 'uk', '发音口音可切换英音');
+  const slow = [...doc.querySelectorAll('[data-s="rate"]')].find(e => e.dataset.v === '0.75');
+  slow.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok(w.eval('S.cfg.rate') === 0.75, '发音语速可调');
 }
 
 console.log(`\n结果：${pass} 通过，${fail} 失败`);

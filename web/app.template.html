@@ -535,12 +535,21 @@ const TAG_DEF = [{ b: 1, n: '中考' }, { b: 2, n: '高考' }, { b: 4, n: '四�
 const NATIVE_TTS = !!(window.AndroidTTS && typeof window.AndroidTTS.speak === 'function');
 const WEB_TTS = 'speechSynthesis' in window;
 const TTS = NATIVE_TTS || WEB_TTS;
+const HD_OK = typeof Audio === 'function' && !/jsdom/i.test(navigator.userAgent || '');
 const openPv = new Set();
 let lastAutoSpoken = -1, lastChoiceSpoken = -1;
+let lastAccent = '', lastNativeRate = 0, hdAudio = null, hdSeq = 0;
+function ttsRate() {
+  const r = Number(S && S.cfg && S.cfg.rate);
+  return isFinite(r) && r > 0 ? r : 0.9;
+}
+function ttsAccent() { return (S && S.cfg && S.cfg.accent) === 'uk' ? 'uk' : 'us'; }
 function pickVoice() {
   try {
     const vs = speechSynthesis.getVoices() || [];
-    return vs.find(v => /^en[-_]US/i.test(v.lang) && /natural|google|samantha|zira/i.test(v.name))
+    const want = ttsAccent() === 'uk' ? /^en[-_]GB/i : /^en[-_]US/i;
+    return vs.find(v => want.test(v.lang) && /natural|google|samantha|daniel|aria|libby|sonia|zira/i.test(v.name))
+        || vs.find(v => want.test(v.lang))
         || vs.find(v => /^en[-_]GB/i.test(v.lang))
         || vs.find(v => /^en/i.test(v.lang)) || null;
   } catch (e) { return null; }
@@ -555,9 +564,50 @@ if (WEB_TTS) {
   }, { passive: true, once: true });
 }
 let voiceWarned = false, nativeWarned = false;
-function speak(t) {
-  if (!t) return;
+function syncNativeVoice() {
+  if (!NATIVE_TTS) return;
+  const acc = ttsAccent(), rate = ttsRate();
+  try {
+    if (acc !== lastAccent && typeof window.AndroidTTS.setAccent === 'function') {
+      window.AndroidTTS.setAccent(acc); lastAccent = acc;
+    }
+    if (Math.abs(rate - lastNativeRate) > 0.001 && typeof window.AndroidTTS.setRate === 'function') {
+      window.AndroidTTS.setRate(rate); lastNativeRate = rate;
+    }
+  } catch (e) {}
+}
+function stopHd() {
+  hdSeq++;
+  if (hdAudio) { try { hdAudio.pause(); hdAudio.removeAttribute('src'); hdAudio.load(); } catch (e) {} hdAudio = null; }
+}
+function hdUrl(t) {
+  const type = ttsAccent() === 'uk' ? 1 : 2;
+  return 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(t) + '&type=' + type;
+}
+function speakHd(t) {
+  try {
+    const seq = ++hdSeq;
+    const a = new Audio(hdUrl(t));
+    hdAudio = a;
+    let done = false;
+    const fallback = () => {
+      if (done || seq !== hdSeq) return;
+      done = true;
+      try { a.pause(); a.removeAttribute('src'); a.load(); } catch (e) {}
+      if (hdAudio === a) hdAudio = null;
+      speakSystem(t);
+    };
+    a.onerror = fallback;
+    a.onended = () => { if (seq === hdSeq) { done = true; if (hdAudio === a) hdAudio = null; } };
+    const p = a.play();
+    if (p && p.catch) p.catch(fallback);
+    setTimeout(() => { if (!done && seq === hdSeq && a.readyState < 2) fallback(); }, 1400);
+    return true;
+  } catch (e) { return false; }
+}
+function speakSystem(t) {
   if (NATIVE_TTS) {
+    syncNativeVoice();
     let ready = true;
     try { ready = window.AndroidTTS.ready(); } catch (e) {}
     try {
@@ -578,10 +628,19 @@ function speak(t) {
     }
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(t);
-    u.lang = 'en-US'; const v = pickVoice(); if (v) u.voice = v;
-    u.rate = 0.92; u.pitch = 1;
+    u.lang = ttsAccent() === 'uk' ? 'en-GB' : 'en-US';
+    const v = pickVoice(); if (v) u.voice = v;
+    u.rate = ttsRate(); u.pitch = 1;
     setTimeout(() => { try { speechSynthesis.speak(u); } catch (e) {} }, 40);
   } catch (e) { toast('朗读失败：' + e.message); }
+}
+function speak(t) {
+  if (!t) return;
+  stopHd();
+  if (HD_OK && S && S.cfg && Number(S.cfg.hd) && String(t).length <= 180) {
+    if (speakHd(t)) return;
+  }
+  speakSystem(t);
 }
 
 /* ---------- 存储 ---------- */
@@ -592,7 +651,7 @@ function defaults() {
   return {
     v: 2, range: 0, seq: 0, learned: {}, groups: [], actives: [], cur: null, lastDone: null,
     days: {}, star: {}, wrong: {}, searchHist: [], fxDay: '',
-    cfg: { maxActive: 3, maxHist: 5, recycleAt: 2, diff: 'balanced', autoSay: 1, goal: 20, autoStar: 1, theme: 'auto', fx: 1, fs: 'md', contrast: 'normal', introOff: 0 },
+    cfg: { maxActive: 3, maxHist: 5, recycleAt: 2, diff: 'balanced', autoSay: 1, goal: 20, autoStar: 1, theme: 'auto', fx: 1, fs: 'md', contrast: 'normal', introOff: 0, hd: 1, accent: 'us', rate: 0.9 },
     sync: { url: '', token: '', name: '', lastHash: '', lastAt: 0, inbox: [] }
   };
 }
@@ -1684,6 +1743,10 @@ const ACTIONS = {
     <div class="srow"><span>每组记录保留</span>${seg('maxHist', [[3, '3 次'], [5, '5 次'], [10, '10 次']])}</div>
     <div class="srow"><span>错词回炉阈值</span>${seg('recycleAt', [[2, '错 2 次'], [3, '错 3 次']])}</div>
     <div class="srow"><span>自动朗读单词</span>${seg('autoSay', [[1, '开'], [0, '关']])}</div>
+    <div class="srow"><span>发音</span>${seg('hd', [[1, '高清（联网）'], [0, '系统']])}</div>
+    <div class="srow"><span>口音</span>${seg('accent', [['us', '美音'], ['uk', '英音']])}</div>
+    <div class="srow"><span>语速</span>${seg('rate', [[0.75, '慢'], [0.9, '标准'], [1.05, '快']])}</div>
+    <div class="srow"><span>试听</span><button class="s-btn" data-s="testSay" style="width:auto;margin-top:0">🔊 读 book</button></div>
     <div class="srow"><span>每日目标</span>${seg('goal', [[10, '10 词'], [20, '20 词'], [30, '30 词'], [50, '50 词']])}</div>
     <div class="srow"><span>答错的词自动进生词本</span>${seg('autoStar', [[1, '开'], [0, '关']])}</div>
     <div class="srow" style="display:block;border-top:1px solid var(--line);padding-top:14px;margin-top:16px">
@@ -1887,6 +1950,10 @@ document.addEventListener('click', e => {
   if (k === 'theme') { S.cfg.theme = b.dataset.v; save(); applyTheme(); ACTIONS.settings(); return; }
   if (k === 'fs' || k === 'contrast') { S.cfg[k] = b.dataset.v; save(); applyDisplay(); ACTIONS.settings(); return; }
   if (k === 'fx') { S.cfg.fx = Number(b.dataset.v); save(); ACTIONS.settings(); return; }
+  if (k === 'hd') { S.cfg.hd = Number(b.dataset.v); save(); ACTIONS.settings(); toast(S.cfg.hd ? '高清发音：联网，优先有道' : '已切回系统语音'); return; }
+  if (k === 'accent') { S.cfg.accent = b.dataset.v; lastAccent = ''; save(); ACTIONS.settings(); return; }
+  if (k === 'rate') { S.cfg.rate = Number(b.dataset.v); lastNativeRate = 0; save(); ACTIONS.settings(); return; }
+  if (k === 'testSay') { speak('book'); return; }
   if (k === 'syncbind') { syncBind(); return; }
   if (k === 'syncpush') { syncPush(); return; }
   if (k === 'ackall') {

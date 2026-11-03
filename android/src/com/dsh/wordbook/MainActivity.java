@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Build;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -11,6 +12,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import java.util.Locale;
+import java.util.Set;
 
 public class MainActivity extends Activity {
     private WebView wv;
@@ -43,6 +45,7 @@ public class MainActivity extends Activity {
                 if (status == TextToSpeech.SUCCESS) {
                     int r = tts.setLanguage(Locale.US);
                     ttsReady = r != TextToSpeech.LANG_MISSING_DATA && r != TextToSpeech.LANG_NOT_SUPPORTED;
+                    pickBestVoice(Locale.US);
                     tts.setSpeechRate(0.9f);
                     tts.setPitch(1.0f);
                 } else {
@@ -54,6 +57,42 @@ public class MainActivity extends Activity {
 
         setContentView(wv);
         wv.loadUrl("file:///android_asset/vocab.html");
+    }
+
+    /** 在同语言音色里挑一个尽量自然的：本地高质量优先，其次 Google/Microsoft/Samsung。 */
+    private void pickBestVoice(Locale want) {
+        if (tts == null || Build.VERSION.SDK_INT < 21) return;
+        try {
+            Set<Voice> voices = tts.getVoices();
+            if (voices == null || voices.isEmpty()) return;
+            Voice best = null;
+            int bestScore = Integer.MIN_VALUE;
+            for (Voice v : voices) {
+                if (v == null || v.getLocale() == null) continue;
+                if (!"en".equals(v.getLocale().getLanguage())) continue;
+                if (v.getFeatures() != null && v.getFeatures().contains("notInstalled")) continue;
+                String n = v.getName() == null ? "" : v.getName().toLowerCase(Locale.US);
+                int sc = 0;
+                if (!want.getCountry().isEmpty() && want.getCountry().equalsIgnoreCase(v.getLocale().getCountry())) sc += 4;
+                if (n.contains("google")) sc += 3;
+                if (n.contains("microsoft")) sc += 3;
+                if (n.contains("samsung")) sc += 2;
+                if (n.contains("pico")) sc -= 6;
+                if (v.getQuality() >= Voice.QUALITY_HIGH) sc += 3;
+                else if (v.getQuality() >= Voice.QUALITY_NORMAL) sc += 1;
+                if (v.isNetworkConnectionRequired()) sc += 1;
+                if (v.getLatency() == Voice.LATENCY_LOW) sc += 1;
+                if (sc > bestScore) { bestScore = sc; best = v; }
+            }
+            if (best != null) tts.setVoice(best);
+        } catch (Exception ignored) { }
+    }
+
+    private void setLanguageAndVoice(Locale loc) {
+        if (tts == null) return;
+        int r = tts.setLanguage(loc);
+        ttsReady = r != TextToSpeech.LANG_MISSING_DATA && r != TextToSpeech.LANG_NOT_SUPPORTED;
+        pickBestVoice(loc);
     }
 
     public class TtsBridge {
@@ -70,6 +109,24 @@ public class MainActivity extends Activity {
             } else {
                 tts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
             }
+        }
+
+        @JavascriptInterface
+        public void setAccent(String accent) {
+            if (tts == null) return;
+            setLanguageAndVoice("uk".equalsIgnoreCase(accent) ? Locale.UK : Locale.US);
+        }
+
+        @JavascriptInterface
+        public void setRate(float rate) {
+            if (tts == null) return;
+            tts.setSpeechRate(Math.max(0.5f, Math.min(1.5f, rate)));
+        }
+
+        @JavascriptInterface
+        public void setPitch(float pitch) {
+            if (tts == null) return;
+            tts.setPitch(Math.max(0.5f, Math.min(1.5f, pitch)));
         }
 
         @JavascriptInterface
