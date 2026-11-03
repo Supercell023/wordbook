@@ -482,5 +482,125 @@ console.log('\n[19] 搜索与完成奖励');
   ok(doc.body.textContent.includes('今天的奖励已经收下'), '完成页显示今日奖励状态');
 }
 
+console.log('\n[20] 间隔重复与到期预测');
+{
+  const d = makeDom(); const w = d.window, doc = w.document;
+  const clk = (act) => {
+    const el = doc.querySelector(`[data-act="${act}"]`);
+    if (!el) throw new Error('missing ' + act);
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  };
+  w.eval("S = defaults(); S.cfg.goal = 999; save(); go('home')");
+  const id = w.eval("WORDS.findIndex(x => x.w === 'book')");
+  const openOne = () => w.eval(`(()=>{ const id=${id}; const s=newSession('group',[id],{seen:true}); S.actives=[s]; S.cur=s.sid; save(); go('quiz'); })()`);
+  openOne();
+  clk('no');
+  ok(w.eval('cur() && cur().queue.length === 1'), '答错后单词留在队列里');
+  clk('yes');
+  const rec1 = w.eval(`S.learned[${id}]`);
+  ok(rec1.lp === 1 && rec1.st === 0 && rec1.iv === 0.5, '本组先错一次：遗忘 +1、连对清零、间隔 0.5 天');
+  openOne();
+  clk('yes');
+  const recMid = w.eval(`S.learned[${id}]`);
+  ok(recMid.st === 1 && recMid.iv === 1, '下一次答对：连对 1、间隔 1 天');
+  openOne();
+  clk('yes');
+  const rec2 = w.eval(`S.learned[${id}]`);
+  ok(rec2.st === 2 && rec2.iv === 3, '第二次连续答对后间隔升到 3 天');
+  ok(rec2.due > Date.now() + 2 * 864e5, '到期时间按词自己的间隔计算');
+  const fc = w.eval('forecastDays(7)');
+  ok(Array.isArray(fc) && fc.length === 7 && fc.some(x => x.c > 0), '未来 7 天到期预测有数据');
+  ok(doc.body.textContent.includes('未来 7 天到期'), '首页显示 7 天到期预测');
+}
+
+console.log('\n[21] 听音选义与例句填空');
+{
+  const d = makeDom(); const w = d.window, doc = w.document;
+  const clk = (act) => {
+    const el = doc.querySelector(`[data-act="${act}"]`);
+    if (!el) throw new Error('missing ' + act);
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  };
+  w.eval("S = defaults(); S.cfg.goal = 999; save(); go('home')");
+  w.eval("['book','appear','run','charge','spring'].forEach((x,i)=>{ const id=WORDS.findIndex(y=>y.w===x); if(id>=0) S.learned[id]={w:1,r:1,t:Date.now(),ok:true,e:2.5,st:1,lp:0,iv:1,due:Date.now()+864e5}; }); save()");
+  clk('listenStart');
+  ok(!!doc.querySelector('.choice-card'), '进入听音选义');
+  ok(doc.querySelectorAll('.opt').length === 4, '四个选项');
+  const q0 = w.eval('cur().queue.length');
+  const ans = w.eval('cur().ch.ans');
+  const opts = [...doc.querySelectorAll('.opt')];
+  opts[ans].dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok(w.eval('cur().queue.length') === q0 - 1, '选对后推进到下一词');
+  clk('quit');
+  clk('clozeStart');
+  ok(!!doc.querySelector('.cloze') && doc.querySelector('.cloze').textContent.includes('____'), '例句填空把目标词变成空格');
+  ok(doc.querySelectorAll('.opt').length === 4, '填空也是四选一');
+  const q1 = w.eval('cur().queue.length');
+  const ans2 = w.eval('cur().ch.ans');
+  [...doc.querySelectorAll('.opt')][ans2].dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok(w.eval('cur().queue.length') === q1 - 1, '填空选对后继续');
+}
+
+console.log('\n[22] 错题本与薄弱词');
+{
+  const d = makeDom(); const w = d.window, doc = w.document;
+  const clk = (act) => {
+    const el = doc.querySelector(`[data-act="${act}"]`);
+    if (!el) throw new Error('missing ' + act);
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  };
+  const id = w.eval("WORDS.findIndex(x => x.w === 'book')");
+  w.eval(`S.learned[${id}]={w:3,r:2,t:Date.now(),ok:true,e:2.2,st:0,lp:1,iv:.5,due:Date.now()+864e5}; S.wrong[${id}]={n:2,t:Date.now(),types:{recall:2}}; save(); go('home')`);
+  ok(doc.body.textContent.includes('错题本') && doc.body.textContent.includes('薄弱词'), '首页出现错题本与薄弱词入口');
+  clk('wrongBook');
+  ok(doc.body.textContent.includes('错 2 次'), '错题本显示错误次数');
+  clk('wrongStart');
+  ok(!!doc.querySelector('.qword'), '错题本可以开始练习');
+  w.eval("S.actives=[]; S.cur=null; save(); go('home')");
+  clk('weakBook');
+  ok(doc.body.textContent.includes('遗忘 1 次'), '薄弱词显示遗忘次数');
+  clk('weakStart');
+  ok(!!doc.querySelector('.qword'), '薄弱词可以单独练习');
+}
+
+console.log('\n[23] 搜索历史、词卡返回栈与显示设置');
+{
+  const d = makeDom(); const w = d.window, doc = w.document;
+  const clk = (act) => {
+    const el = doc.querySelector(`[data-act="${act}"]`);
+    if (!el) throw new Error('missing ' + act);
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  };
+  clk('search');
+  const input = doc.getElementById('searchIn');
+  input.value = 'book';
+  input.dispatchEvent(new w.Event('input', { bubbles: true }));
+  doc.querySelector('#srlist [data-act="wordCard"]').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  doc.querySelector('.sheet-x').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  w.eval("go('home')");
+  clk('search');
+  const hist = doc.querySelector('.sh-t');
+  ok(hist && hist.textContent.trim() === 'book', '搜索后留下最近查词');
+  hist.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok(doc.getElementById('searchIn').value === 'book', '点历史重新填入搜索词');
+
+  w.eval("closeModal(); go('home'); openWordCard('book')");
+  const fam = doc.querySelector('.sheet .famw');
+  ok(!!fam, '词卡有同族词');
+  fam.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok(!!doc.querySelector('.wc-acts [data-act="cardBack"]'), '进入同族词后有返回按钮');
+  doc.querySelector('[data-act="cardBack"]').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok((doc.querySelector('.wc-word') || {}).textContent === 'book', '返回上一个词');
+  w.eval('closeModal()');
+
+  clk('settings');
+  const fsLg = [...doc.querySelectorAll('[data-s="fs"]')].find(e => e.dataset.v === 'lg');
+  fsLg.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok(doc.documentElement.dataset.fs === 'lg' && w.eval("S.cfg.fs") === 'lg', '字号设置生效并保存');
+  const high = [...doc.querySelectorAll('[data-s="contrast"]')].find(e => e.dataset.v === 'high');
+  high.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok(doc.documentElement.dataset.contrast === 'high', '高对比度设置生效');
+}
+
 console.log(`\n结果：${pass} 通过，${fail} 失败`);
 process.exit(fail ? 1 : 0);

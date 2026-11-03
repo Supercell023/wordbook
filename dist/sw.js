@@ -2,8 +2,12 @@
  * 目标：添加到主屏幕后可离线打开；升级时安全换版，不让旧缓存卡住新版页面。
  * 注意：sw.js 必须放在站点根目录（或带 Service-Worker-Allowed 头），本仓库由
  *       build.sh 同步到 dist / server/public / android/assets / ios/Resources/www。
+ *
+ * 更新流程：新 SW 安装完 skipWaiting → activate 删除旧 wordbook-* 缓存并
+ * clients.claim()；若确实是从旧版本升级，向所有 window client 发
+ * {type:'WB_UPDATED', version, cache}，页面据此提示「新版本，点此刷新」。
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = 'wordbook-' + VERSION;
 
 /* 预缓存清单：单个资源失败不影响安装（旧版本里 ./student.html 在静态托管下会 404，
@@ -19,6 +23,16 @@ const CORE = [
   './icons/apple-touch-icon.png',
   './icons/favicon-32.png'
 ];
+
+async function notifyUpdated() {
+  let clients = [];
+  try {
+    clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  } catch (_) { return; }
+  for (const client of clients) {
+    try { client.postMessage({ type: 'WB_UPDATED', version: VERSION, cache: CACHE }); } catch (_) {}
+  }
+}
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
@@ -36,11 +50,14 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    const hadOld = keys.some(k => k !== CACHE && k.startsWith('wordbook-'));
+    await Promise.all(keys.filter(k => k !== CACHE && k.startsWith('wordbook-')).map(k => caches.delete(k)));
     if (self.registration.navigationPreload) {
       try { await self.registration.navigationPreload.disable(); } catch (_) {}
     }
     await self.clients.claim();
+    /* 首次安装没有旧缓存，不打扰页面；真正的版本升级才通知。 */
+    if (hadOld) await notifyUpdated();
   })());
 });
 
@@ -122,7 +139,10 @@ self.addEventListener('fetch', event => {
 /* 页面发 {type:'SKIP_WAITING'} 可立即接管（设置里「检查更新」用得上） */
 self.addEventListener('message', event => {
   const data = event.data || {};
-  if (data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (data.type === 'SKIP_WAITING') {
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
   if (data.type === 'VERSION' && event.source) {
     event.source.postMessage({ type: 'VERSION', version: VERSION, cache: CACHE });
   }

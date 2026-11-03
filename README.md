@@ -7,8 +7,9 @@
 词库自己建 · 数据全在本地 · 服务器只帮你收作业
 
 [![词库](https://img.shields.io/badge/%E8%AF%8D%E5%BA%93-12%2C115%20%E8%AF%8D-2ea44f?style=for-the-badge)](https://github.com/Supercell023/wordbook)
-[![单文件](https://img.shields.io/badge/%E5%8D%95%E6%96%87%E4%BB%B6-5.5MB-1f6feb?style=for-the-badge)](https://github.com/Supercell023/wordbook/releases)
-[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-155%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
+[![单文件](https://img.shields.io/badge/%E5%8D%95%E6%96%87%E4%BB%B6-5.6MB-1f6feb?style=for-the-badge)](https://github.com/Supercell023/wordbook/releases)
+[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-180%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
+[![CI](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml/badge.svg)](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml)
 [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Android%20%C2%B7%20iOS%20%C2%B7%20Web-8957e5?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-MIT-yellow?style=for-the-badge)](LICENSE)
 
@@ -24,6 +25,11 @@
 <img src="docs/screenshots/shot-dark.png" width="44%" alt="暗夜模式">
 <img src="docs/screenshots/shot-fx.png" width="44%" alt="完成奖励">
 <br><sub>暗夜模式 · 完成奖励</sub>
+<br>
+<img src="docs/screenshots/shot-listen.png" width="30%" alt="听音选义">
+<img src="docs/screenshots/shot-cloze.png" width="30%" alt="例句填空">
+<img src="docs/screenshots/shot-wrong.png" width="30%" alt="错题本">
+<br><sub>听音选义 · 例句填空 · 错题本</sub>
 
 </div>
 
@@ -66,7 +72,9 @@
 
 点开释义之后还有：**中英对照例句**、**音节划分**（ap·pear）、**同族词**（appear → appearance n.）、**词形变化**（book → booked / books）、**近反义词**；同族词和近反义词都可以继续点开看释义。单词旁边有 🔊 朗读。
 
-界面用**宋体 + Times New Roman** 的书卷排版，支持**浅色 / 暗夜 / 跟随系统**；复习完一天的任务会随机撒星星、花瓣或烟花。
+界面用**宋体 + Times New Roman** 的书卷排版，支持**浅色 / 暗夜 / 跟随系统**、**字号（标准/大/特大）和高对比度**；复习完一天的任务会随机撒星星、花瓣或烟花。
+
+学完一组不是结束：**每个词有自己的复习间隔**（ease、连对次数、遗忘次数），答错的词会降间隔、优先回炉；首页能看到**未来 7 天到期预测**和**薄弱词**。练习除了认词，还有**听音选义**、**例句填空**、**拼写自测**；答错/拼错自动进**错题本**，按错误类型（认词/听音/填空/拼写）记录。词卡里可以看完全部义项、英英释义、词形、近反义和同族词，同族词之间能一层层点进去，再用「‹」返回上一个词；搜索会保留最近查过的词。
 
 ## 🚀 三种用法，挑一个
 
@@ -76,7 +84,7 @@
 
 ### ② 安卓安装包
 
-下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.7.1）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
+下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.8.0）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
 
 ### ③ 安装成 PWA（iPhone / Android 推荐）
 
@@ -109,7 +117,7 @@
 
 ```text
   ECDICT ─┐
-  上海中考 ─┼─▶ tools/build.py ─▶ dist/vocab.html（5.5MB 单文件）
+  上海中考 ─┼─▶ tools/build.py ─▶ dist/vocab.html（5.6MB 单文件）
   上海高考 ─┤        │                  ├─▶ 浏览器直接打开
   Tatoeba ─┘        │                  ├─▶ server/public ─▶ 学生手机
   WordNet ──────────┘                  ├─▶ android/assets ─▶ APK
@@ -128,18 +136,22 @@
 
 ```bash
 # 词库（需要 Python 3.10+）
-pip install -r tools/requirements.txt
-curl -L -o data/ecdict.csv \
-  https://raw.githubusercontent.com/skywind3000/ECDICT/master/ecdict.csv
-./build.sh                 # 生成 dist/vocab.html 并同步到各端
+pip install -r tools/requirements.txt      # 或 pip install pyphen nltk
+bash tools/fetch_data.sh                   # 下载 data/ecdict.csv（约 66MB，已有则跳过）
+./build.sh                                 # 生成 dist/vocab.html 并同步到各端
 
 # 安卓
 sudo apt-get install -y openjdk-17-jdk-headless aapt zipalign
-bash android/build.sh      # 产物 android/wordbook.apk
+bash android/build.sh                      # 产物 android/wordbook-<版本>-debug.apk + wordbook.apk
+# release 签名见 docs/部署指南.md 第十一节（WORDBOOK_KEYSTORE 等四个环境变量）
 
 # 测试
-cd tests && npm install && node test.js
+cd tests && npm ci && node test.js
 ```
+
+`tools/fetch_data.sh` 支持 `--force` 强制重下，也可用 `ECDICT_URL=...` 指定镜像；下载会先校验大小和表头再原子替换，不会留下半截 CSV。
+
+CI 见 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)：push 到 `main`/`master`、Pull Request 或手动触发时，自动准备 Node 20 / Python 3.12、下载词库、构建、`sync` + `verify` 并跑功能测试，产物（`dist/vocab.html`、已提交的 `android/wordbook.apk`）在 Actions 的 `wordbook-build` artifact 里。CI 不装 Android SDK，APK 仍需本地打包。
 
 ## 👩‍🏫 班级版：老师能看什么
 
@@ -168,7 +180,7 @@ sudo bash server/deploy.sh --domain wb.example.com
 
 ## ✅ 测试
 
-- **155 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
+- **180 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
 - **布局检查**：用 Chromium 量每个页面的元素边界，保证 390px 手机宽度下没有横向溢出
 - **服务器测试**：25 项接口断言（激活码、去重、越权、伪造令牌）
 
@@ -178,6 +190,7 @@ sudo bash server/deploy.sh --domain wb.example.com
 - [部署指南](docs/部署指南.md) —— 从零到一台能用的服务器
 - [架构说明](docs/架构.md) —— 数据结构、分组算法、接口清单
 - [竞品调研](docs/竞品调研.md) —— 同类 App 的特色、槽点与本项目的取舍
+- [内容质量报告](docs/内容质量报告.md) —— 义项清洗、词性回填、例句筛选的数字与遗留风险
 - [数据来源](data/README.md) —— 每个文件从哪来、什么许可
 
 ## 📜 许可

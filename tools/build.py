@@ -82,6 +82,75 @@ def _split_items(body):
     return [x.strip(" .;；") for x in re.split(r"[,，;；]", body) if x.strip(" .;；")]
 
 
+# ---- 义项清洗 ----------------------------------------------------------
+STATS = {"sense_drop": 0, "empty_pos": 0, "form_drop": 0, "fam_drop": 0,
+         "ex_keep": 0, "ex_replaced": 0, "ex_bad": 0, "ex_added": 0}
+
+_CJK_RE = re.compile(r"[\u4e00-\u9fff]")
+# 纯标点/纯符号：既没有汉字也没有字母数字
+_PUNCT_ONLY = re.compile(r"[^\w\u4e00-\u9fff]+")
+# “见color / 同colour / 参见 go” 这类纯索引义项（要求索引目标是拉丁词，
+# 避免误删“见闻/同感/参见”这类有实义的词）
+_INDEX_RE = re.compile(r"^(见|同|另见|参见|见词|同上|see\s+also|same\s+as|variant\s+of)"
+                       r"\s*[:：]?\s*[A-Za-z][A-Za-z' \-]{1,20}$", re.I)
+
+
+def _norm_key(s):
+    """大小写/标点/空白不敏感的归一化 key，用于去重与查重。"""
+    return re.sub(r"[\W_]+", "", (s or "").lower(), flags=re.UNICODE)
+
+
+def clean_item(it):
+    it = re.sub(r"\s+", " ", (it or "")).strip()
+    return it.strip(" .;；,，、:：·|")
+
+
+def sense_noise(it):
+    """True = 该义项是噪声，应丢弃。只拦明显坏的，误删风险高的规则一律收紧。"""
+    if not it:
+        return True
+    if not _CJK_RE.search(it) and not re.search(r"[A-Za-z0-9]", it):
+        return True                      # 纯标点 / 纯符号
+    if _PUNCT_ONLY.fullmatch(it):
+        return True
+    if len(it) > 60 and not _CJK_RE.search(it):
+        return True                      # 超长且无中文：多半是英文残句
+    if _INDEX_RE.match(it):
+        return True                      # “见xxx / 同xxx” 纯索引
+    if it in ("—", "——", "-", "?"):
+        return True
+    return False
+
+
+def clean_senses(senses, max_items=9):
+    """义项清洗：去噪声、同词性内去重（大小写/标点不敏感）、合并重复词性组。
+    保持 ECDICT 原行顺序，不重排、不臆造。返回 (清洗后 list, 丢弃条数)。"""
+    out, idx, dropped = [], {}, 0
+    for pos, items in (senses or []):
+        p = re.sub(r"\s+", " ", (pos or "")).strip()
+        pk = _norm_key(p)
+        if pk and pk in idx:
+            grp = out[idx[pk]]
+        else:
+            idx[pk] = len(out)
+            grp = [p, []]
+            out.append(grp)
+        seen = {_norm_key(x) for x in grp[1]}
+        seen.discard("")
+        for it in items:
+            c = clean_item(it)
+            if sense_noise(c):
+                dropped += 1
+                continue
+            k = _norm_key(c)
+            if not k or k in seen or len(grp[1]) >= max_items:
+                dropped += 1 if (not k or k in seen) else 0
+                continue
+            seen.add(k)
+            grp[1].append(c)
+    return [g for g in out if g[1]], dropped
+
+
 def parse_senses(tr, max_sense=6, max_items=9):
     """把 ECDICT 的 translation 拆成 [[词性, [义项...]], ...] 与专业义。
     一个词可能有多行、多词性；义项内再用逗号/分号切开。"""
@@ -114,7 +183,26 @@ def parse_senses(tr, max_sense=6, max_items=9):
                     senses[-1][1].append(x)
         elif len(senses) < max_sense:
             senses.append([pos, items])
-    return senses, spec
+    senses, dropped = clean_senses(senses, max_items)
+    STATS["sense_drop"] += dropped
+    # 专业义也有同样的噪声问题，用同一套规则清洗（保留领域顺序）
+    spec2 = []
+    for dom, items in spec:
+        keep, seen = [], set()
+        for it in items:
+            c = clean_item(it)
+            if sense_noise(c):
+                STATS["sense_drop"] += 1
+                continue
+            k = _norm_key(c)
+            if not k or k in seen:
+                STATS["sense_drop"] += 1
+                continue
+            seen.add(k)
+            keep.append(c)
+        if keep:
+            spec2.append([dom, keep])
+    return senses, spec2
 
 
 _WN_POS_CACHE = {}
@@ -153,6 +241,39 @@ def short_tr(senses, spec=None, limit=48):
     return txt
 
 
+def _norm_pos(p):
+    """词性标注归一：只接受词表内的标准缩写，其它一律返回空，避免臆造。"""
+    s = (p or "").strip()
+    if not s:
+        return ""
+    if s.lower() in POS_MAP:
+        return POS_MAP[s.lower()]
+    if re.fullmatch(r"[A-Za-z]{1,6}\.?", s):
+        return POS_MAP.get(s.lower().rstrip("."), "")
+    return ""
+
+
+def fill_pos(senses, defs, w, hint=""):
+    """空词性回填：数据自带词性 → 英英释义词性 → WordNet；返回回填组数。
+    只填空组，不改已有词性，保证不臆造。"""
+    fp = _norm_pos(hint)
+    if not fp:
+        for p, _ in (defs or []):
+            if p:
+                fp = p
+                break
+    if not fp:
+        fp = wn_pos(w)
+    if not fp:
+        return 0
+    n = 0
+    for s in senses:
+        if not s[0]:
+            s[0] = fp
+            n += 1
+    return n
+
+
 def parse_defs(definition, max_defs=2, max_len=100):
     """英英释义：保留前 2 条，按词性带标签；避免单文件膨胀。"""
     d = (definition or "").replace("\\n", "\n").replace("\r", "\n")
@@ -173,15 +294,30 @@ def parse_defs(definition, max_defs=2, max_len=100):
 
 
 def parse_forms(exchange, word):
-    """exchange: d:abandoned/p:abandoned/i:abandoning/3:abandons → [[标签, 词形]]。"""
-    out = []
+    """exchange: d:abandoned/p:abandoned/i:abandoning/3:abandons → [[标签, 词形]]。
+    过滤：空词形、与主词相同的词形、（标签,词形）重复项、非拉丁词形。"""
+    out, seen = [], set()
     for part in (exchange or "").split("/"):
         if ":" not in part:
             continue
         k, v = part.split(":", 1)
-        v = v.strip()
-        if k in FORM_LB and v and v.lower() != word.lower() and len(out) < 6:
-            out.append([FORM_LB[k], v])
+        v = (v or "").strip().strip(" .,;:·")
+        if k not in FORM_LB or not v:
+            continue
+        if v.lower() == (word or "").lower():          # 与主词相同
+            STATS["form_drop"] += 1
+            continue
+        if not re.fullmatch(r"[A-Za-z][A-Za-z'\-]*", v):  # 空/含中文/带标点的脏词形
+            STATS["form_drop"] += 1
+            continue
+        pair = (FORM_LB[k], v.lower())
+        if pair in seen:
+            STATS["form_drop"] += 1
+            continue
+        if len(out) >= 6:
+            break
+        seen.add(pair)
+        out.append([FORM_LB[k], v])
     return out
 
 
@@ -297,9 +433,12 @@ def build_families(words, common, freq, posmap, NAMES):
         except Exception:
             pass
         # 标注词性（取该词自身最常见的词性，统一用英文缩写）
-        cands = [c for c in cands if not _infl(c, common) and c not in NAMES]
-        res = []
+        cands = [c for c in cands if c != w and not _infl(c, common) and c not in NAMES]
+        res, seen = [], set()
         for c in sorted(cands, key=lambda x: (freq.get(x) or 10 ** 7))[:3]:
+            if c in seen:
+                STATS["fam_drop"] += 1
+                continue
             pos = posmap.get(c, "")
             if not pos:
                 try:
@@ -308,6 +447,7 @@ def build_families(words, common, freq, posmap, NAMES):
                         pos = _POSEN.get(ts[0].pos(), "")
                 except Exception:
                     pass
+            seen.add(c)
             res.append([c, pos])
         if res:
             out[w] = res
@@ -353,6 +493,76 @@ def difficulty(d):
     ln = min(1.0, max(0.0, (len(d["w"]) - 4) / 8))
     sn = min(1.0, len(d["senses"]) / 4)
     return 0.45 * lv + 0.35 * fq + 0.10 * ln + 0.10 * sn
+
+
+# ---- 例句筛选 ----------------------------------------------------------
+def _hollow(t):
+    """“暂无中文释义”“—”“n/a”这类空洞值。"""
+    t = (t or "").strip()
+    if not t:
+        return True
+    if t in ("—", "——", "-", "?", "暂无", "暂无中文释义", "无", "n/a", "N/A"):
+        return True
+    return not re.search(r"[\u4e00-\u9fffA-Za-z0-9]", t)
+
+
+def dedupe_zh(txt, sep="；"):
+    """按分号合并重复片段（大小写/标点不敏感），保留首次出现的顺序。"""
+    parts = [p.strip() for p in re.split(r"[；;]", txt or "") if p.strip()]
+    out, seen = [], set()
+    for p in parts:
+        k = _norm_key(p)
+        if not k or k in seen:
+            continue
+        seen.add(k)
+        out.append(p)
+    return sep.join(out)
+
+
+def infl_forms(word, forms=None):
+    """“例句必须包含目标词”的匹配集合：主词 + 词形变化 + 常见屈折。"""
+    base = (word or "").lower().strip()
+    out = {base}
+    for _lb, f in (forms or []):
+        if f:
+            out.add(f.lower())
+    if re.fullmatch(r"[a-z][a-z'\-]*", base):
+        out.update({base + "s", base + "'s", base + "ed", base + "ing",
+                    base + "er", base + "est"})
+        if base.endswith("e"):
+            out.update({base + "d", base[:-1] + "ing",
+                        base[:-1] + "er", base[:-1] + "est"})
+        if base.endswith("y") and len(base) > 2:
+            out.update({base[:-1] + "ies", base[:-1] + "ied",
+                        base[:-1] + "ier", base[:-1] + "iest"})
+        if re.search(r"(s|x|z|ch|sh)$", base):
+            out.add(base + "es")
+        if len(base) >= 3 and not re.search(r"[aeiou]$", base) and not base.endswith("y"):
+            out.update({base + base[-1] + "ing", base + base[-1] + "ed",
+                        base + base[-1] + "er"})
+    return out
+
+
+def check_example(e, forms):
+    """硬规则：含目标词（含词形变化）、20–150 字符、≥4 词、不含中文。
+    合格返回 token 列表，不合格返回 None。"""
+    e = (e or "").strip()
+    if not e or _CJK_RE.search(e):
+        return None
+    if not (20 <= len(e) <= 150):
+        return None
+    toks = re.findall(r"[a-z][a-z'\-]*", e.lower())
+    if len(toks) < 4:
+        return None
+    if not any(t in forms for t in toks):
+        return None
+    return toks
+
+
+def score_example(toks, e, common):
+    """越小越好：生僻词更少 → 更短；完全同分时由调用方保持候选顺序。"""
+    rare = sum(1 for t in toks if t not in common)
+    return (rare, len(e))
 
 
 def main():
@@ -401,16 +611,14 @@ def main():
                 bits = 0  # 只作为上海词库补充，不改变原有词库归属
             senses, spec = parse_senses(tr)
             defs = parse_defs(r.get("definition"))
-            if senses:
-                fallback_pos = (defs[0][0] if defs and defs[0][0] else "") or wn_pos(w)
-                for s in senses:
-                    if not s[0]:
-                        s[0] = fallback_pos
-            if not senses and not spec:
+            if not senses:
+                # 清洗后义项被清空的兜底，避免出现“有词无义”
                 fallback = clean_tr(tr)
-                if not fallback:
+                if not fallback and not spec:
                     continue
-                senses = [["", [fallback]]]
+                if fallback:
+                    senses = [["", [fallback]]]
+            fill_pos(senses, defs, w)
             freq = allfreq.get(key) or 10 ** 7
             lvl = max((LEVEL.index(t) for t in tags if t in BITS and (BITS[t] & bits)), default=0)
             ph = (r.get("phonetic") or "").strip().replace("ә", "ə").replace("ɡ", "g")
@@ -432,15 +640,16 @@ def main():
             if k in rows:
                 rows[k]["mask"] |= BITS["sh-zk"]
                 rows[k]["lvl"] = max(rows[k]["lvl"], LEVEL.index("sh-zk"))
+                # 原表自带词性，只用于补「全空」的单义项组，避免改多词性词
+                sn = rows[k]["senses"]
+                if len(sn) == 1 and not sn[0][0]:
+                    fill_pos(sn, rows[k]["defs"], k, v.get("pos"))
                 continue
             senses, spec = parse_senses(v.get("def") or "")
-            if senses:
-                fp = wn_pos(k)
-                for s in senses:
-                    if not s[0]:
-                        s[0] = fp
+            hint = _norm_pos(v.get("pos"))
             if not senses:
-                senses = [["", [v.get("def") or "—"]]]
+                senses = [[hint, [v.get("def") or "—"]]]
+            fill_pos(senses, [], k, hint)
             rows[k] = {"w": k, "ph": "", "mask": BITS["sh-zk"],
                        "freq": 10 ** 7, "lvl": LEVEL.index("sh-zk"),
                        "senses": senses, "spec": spec, "defs": [], "forms": [], "stars": 0}
@@ -460,15 +669,16 @@ def main():
                 rows[k]["mask"] |= BITS["sh-gk"]
                 rows[k]["lvl"] = max(rows[k]["lvl"], LEVEL.index("sh-gk"))
                 continue
-            zh = re.sub(r"^[a-z]+\.\s*", "", d["zh"] or "").strip() or "—"
-            senses, spec = parse_senses(zh)
-            if senses:
-                fp = wn_pos(k)
-                for s in senses:
-                    if not s[0]:
-                        s[0] = fp
+            raw_zh = (d["zh"] or "").strip()
+            mz = re.match(r"^([A-Za-z]+\.)\s*", raw_zh)
+            # 认识的词性前缀保留给 parse_senses；不认识的照旧剥掉，避免把前缀当义项
+            keep_prefix = bool(mz and mz.group(1).lower() in POS_MAP)
+            src_zh = raw_zh if keep_prefix else re.sub(r"^[a-z]+\.\s*", "", raw_zh).strip()
+            zh = re.sub(r"^[a-z]+\.\s*", "", src_zh).strip() or "—"
+            senses, spec = parse_senses(src_zh)
             if not senses:
-                senses = [["", [zh]]]
+                senses = [[_norm_pos(mz.group(1)) if keep_prefix else "", [zh]]]
+            fill_pos(senses, [], k)
             rows[k] = {"w": k, "ph": d["ipa"].strip("/") if d.get("ipa") else "",
                        "mask": BITS["sh-gk"], "freq": 10 ** 7, "lvl": LEVEL.index("sh-gk"),
                        "senses": senses, "spec": spec, "defs": [], "forms": [], "stars": 0}
@@ -492,10 +702,21 @@ def main():
     for d in data:
         d["syl"] = syl_split(d["w"])
         key = d["w"].lower()
-        d["fam"] = fam.get(key)
+        # 同族词：过滤与主词相同的项 + 去重，保持词频排序
+        fam_list, seen = [], set()
+        for pair in (fam.get(key) or []):
+            c = (pair[0] or "").strip().lower()
+            if not c or c == key or c in seen:
+                STATS["fam_drop"] += 1
+                continue
+            seen.add(c)
+            fam_list.append([pair[0], pair[1]])
+        d["fam"] = fam_list or None
         r = rel.get(key)
-        d["syn"] = r[0] if r else []
-        d["ant"] = r[1] if r else []
+        syn = [x for x in dict.fromkeys(r[0]) if x != key] if r else []
+        ant = [x for x in dict.fromkeys(r[1]) if x != key] if r else []
+        d["syn"] = syn
+        d["ant"] = ant
         d["tr_short"] = short_tr(d["senses"], d["spec"], 120) or "—"
 
     # 同族词 / 近反义词的简释义（这些词不一定在主词库里，弹卡时用）
@@ -505,7 +726,8 @@ def main():
             need.add(pair[0])
         need.update(d.get("syn") or [])
         need.update(d.get("ant") or [])
-    famd = {}
+    famd, famd_en = {}, set()
+    _sd = STATS["sense_drop"]
     with open(SRC, encoding="utf-8", newline="") as f:
         for r in csv.DictReader(f):
             w = (r.get("word") or "").strip().lower()
@@ -515,75 +737,162 @@ def main():
             if not tr:
                 continue
             senses, spec = parse_senses(tr, max_sense=3, max_items=4)
-            txt = short_tr(senses, spec, 46)
-            if txt:
+            txt = dedupe_zh(short_tr(senses, spec, 46))
+            # 只收有中文的；纯英文的留给 WordNet 兜底（统一加“英：”前缀）
+            if txt and _CJK_RE.search(txt) and not _hollow(txt):
                 famd[w] = txt
-    # 主词库里的词也补上（近义词点击时释义更完整）
+    # 这一遍只是为弹卡二次解析，不重复计入义项清洗统计
+    STATS["sense_drop"] = _sd
+    # 主词库里的词也补上（近义词点击时释义更完整）；只收有中文的
     for d in data:
         key = d["w"].lower()
         if key in need and key not in famd:
-            famd[key] = d["tr_short"]
-    # 仍缺中文释义的（多为派生词），用 WordNet 英文释义兜底，保证点开有内容
+            txt = dedupe_zh(d["tr_short"])
+            if txt and _CJK_RE.search(txt) and not _hollow(txt):
+                famd[key] = txt
+    # 确实没有中文的（多为派生词/生僻词），才用 WordNet 英文兜底，前缀“英：”
     try:
         from nltk.corpus import wordnet as wn
     except Exception:
         wn = None
     if wn:
-        for w in need:
+        for w in sorted(need):
             if w in famd:
                 continue
             try:
                 syns = wn.synsets(w)
                 if syns:
-                    en = (syns[0].definition() or "").strip()
-                    if en:
+                    en = re.sub(r"\s+", " ", (syns[0].definition() or "")).strip()
+                    if en and not _hollow(en):
                         famd[w] = "英：" + en[:70]
             except Exception:
                 pass
+    # 英文兜底项统一口径：以“英：”开头的都算英文覆盖
+    famd_en = {w for w in need if famd.get(w, "").startswith("英：")}
 
-    ex = {}
+    # ---- 例句：先把所有候选源全量收集，再按规则打分重选 ----
+    # rank: 0=手工例句(hand_examples) 1=examples.json 2=examples_new 3=nosent_out
     exf = os.path.join(BASE, "examples.json")
     tf = os.path.join(BASE, "translations.json")
+    exnf = os.path.join(BASE, "examples_new.json")
+    hf = os.path.join(BASE, "hand_examples.json")
+    src = []  # (rank, key, en, zh)
     if os.path.exists(exf):
         ej = json.load(open(exf, encoding="utf-8"))
         tj = json.load(open(tf, encoding="utf-8")) if os.path.exists(tf) else {}
         for k, v in ej.items():
-            c = (v.get("c") or "").strip() or (tj.get(k) or "").strip()
+            c = (v.get("c") or "").strip() or (str(tj.get(k) or "")).strip()
             e = (v.get("e") or "").strip()
             if e and c:
-                ex[k] = [e, c]
-    exnf = os.path.join(BASE, "examples_new.json")
+                src.append((1, k, e, c))
     if os.path.exists(exnf):
         for k, v in json.load(open(exnf, encoding="utf-8")).items():
             e = (v.get("e") or "").strip()
             c = (v.get("c") or "").strip()
-            if e and c and k not in ex:
-                ex[k] = [e, c]
+            if e and c:
+                src.append((2, k, e, c))
     for nf in sorted(glob.glob(os.path.join(BASE, "nosent_out_*.json"))):
         for k, v in json.load(open(nf, encoding="utf-8")).items():
             if isinstance(v, list) and len(v) == 2 and v[0] and v[1]:
-                ex[k] = [v[0].strip(), v[1].strip()]
-    hf = os.path.join(BASE, "hand_examples.json")
+                src.append((3, k, v[0].strip(), v[1].strip()))
     if os.path.exists(hf):
         for k, v in json.load(open(hf, encoding="utf-8")).items():
             if v and v[0] and v[1]:
-                ex[k] = v
+                src.append((0, k, (v[0] or "").strip(), (v[1] or "").strip()))
+
+    # 基线：完全复刻原来的“后写覆盖”优先级，用于对比覆盖率
+    base_ex = {}
+    for rank in (1, 2, 3, 0):
+        for rk, k, e, c in src:
+            if rk != rank:
+                continue
+            if rank == 2 and k in base_ex:
+                continue
+            base_ex[k] = [e, c]
+
+    cands = {}
+    for rk, k, e, c in src:
+        cands.setdefault(k.strip().lower(), []).append((rk, e, c))
+
+    ex, replaced, kept_bad = {}, 0, []
+    for d in data:
+        wl = d["w"].lower()
+        cl = cands.get(wl)
+        base = base_ex.get(wl) or base_ex.get(d["w"])
+        if not cl:
+            if base:
+                ex[wl] = base
+            continue
+        forms = infl_forms(wl, d["forms"])
+        pick = None
+        # 手工例句只要通过硬规则就保留（只修明显坏的句子）
+        for rk, e, c in cl:
+            if rk == 0 and check_example(e, forms) is not None:
+                pick = (e, c)
+                break
+        if pick is None:
+            best = None
+            for rk, e, c in cl:
+                toks = check_example(e, forms)
+                if toks is None:
+                    continue
+                sc = score_example(toks, e, common)
+                if best is None or sc < best:
+                    best, pick = sc, (e, c)
+        if pick is None:
+            # 没有合格候选：保留原句（不牺牲覆盖率），仅记录“坏句”
+            if base:
+                ex[wl] = base
+                kept_bad.append(wl)
+            continue
+        if base and base[0].strip() != pick[0].strip():
+            replaced += 1
+        ex[wl] = [pick[0], pick[1]]
+
+    cov_base = sum(1 for d in data if base_ex.get(d["w"].lower()) or base_ex.get(d["w"]))
+    cov_new = sum(1 for d in data if ex.get(d["w"].lower()))
+    # 回退保护：重选若让覆盖率下降超过 1 个百分点，整批退回原选择
+    if cov_base and (cov_base - cov_new) > 0.01 * len(data):
+        print(f"例句重选回退：覆盖率 {cov_new} → {cov_base}（下降超过 1%），沿用原选择")
+        ex = {k.lower(): v for k, v in base_ex.items()}
+        cov_new = sum(1 for d in data if ex.get(d["w"].lower()))
 
     raw = [[d["w"], d["ph"], d["mask"], round(d["diff"], 3), d["freq"],
             ex.get(d["w"].lower()), d["syl"], d["fam"], d["senses"], d["spec"],
             d["defs"], d["forms"], d["stars"], d["syn"], d["ant"]] for d in data]
 
+    # schema 自检：15 列结构不变，例句是 [英,中] 或 None，避免静默写坏前端
+    bad = [r[0] for r in raw if len(r) != 15]
+    if bad:
+        raise SystemExit(f"schema 错误：{len(bad)} 条不是 15 列，例如 {bad[:5]}")
+    bad_ex = [r[0] for r in raw if r[5] is not None and
+              (not isinstance(r[5], list) or len(r[5]) != 2)]
+    if bad_ex:
+        raise SystemExit(f"例句结构错误：{len(bad_ex)} 条，例如 {bad_ex[:5]}")
+    print(f"schema: 15 列 ✓  例句字段结构 ✓  (词条 {len(raw)})")
+
     sens_n = sum(len(r[8]) for r in raw)
     item_n = sum(len(s[1]) for r in raw for s in r[8])
+    empty_grp = sum(1 for r in raw for s in r[8] if not s[0])
+    empty_first = sum(1 for r in raw if r[8] and not r[8][0][0])
+    famd_cn = sum(1 for v in famd.values() if _CJK_RE.search(v) and not v.startswith("英："))
+    famd_nen = len(famd_en)
+    famd_other = len(famd) - famd_cn - famd_nen
+    forms_n = sum(len(r[11]) for r in raw)
     print(f"词条数: {len(raw)}")
-    print(f"例句覆盖: {sum(1 for r in raw if r[5])}/{len(raw)}")
+    print(f"例句覆盖: {cov_new}/{len(raw)}  (优化前 {cov_base})  "
+          f"重选 {replaced} 条  仍不合格但保留 {len(kept_bad)} 条")
     print(f"同族词覆盖: {sum(1 for r in raw if r[7])}/{len(raw)}")
     print(f"近义词覆盖: {sum(1 for r in raw if r[13])}  反义词覆盖: {sum(1 for r in raw if r[14])}")
     print(f"义项组: {sens_n}  义项条: {item_n}  多词性词: {sum(1 for r in raw if len(r[8]) >= 2)}")
+    print(f"义项清洗丢弃: {STATS['sense_drop']} 条  空词性: {empty_grp} 组"
+          f"（首组空词性 {empty_first} 词）")
     print(f"英英释义: {sum(1 for r in raw if r[10])}  词形变化: {sum(1 for r in raw if r[11])}"
+          f" 词形条数: {forms_n}（过滤 {STATS['form_drop']}）"
           f"  专业义: {sum(1 for r in raw if r[9])}  柯林斯星级: {sum(1 for r in raw if r[12])}")
     print(f"音节已切: {sum(1 for r in raw if r[6] != r[0])}/{len(raw)}")
-    print(f"同族/近反义词简释义: {len(famd)}")
+    print(f"同族/近反义词简释义: {len(famd)}  中文 {famd_cn}  英文兜底 {famd_nen}"
+          f"  其它 {famd_other}  仍缺 {len(need) - len(famd)}  (需补词 {len(need)})")
     for name, bit in BITS.items():
         print(f"  {name:5s}: {sum(1 for d in data if d['mask'] & bit)}")
     for i, name in enumerate(LEVEL):

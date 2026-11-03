@@ -26,9 +26,9 @@ build() {
     cat >&2 <<'EOF'
 缺少 data/ecdict.csv（ECDICT 词库，约 66MB）。
 下载：
-  curl -L -o data/ecdict.csv \
-    https://github.com/skywind3000/ECDICT/raw/master/ecdict.csv
-（国内可用 https://ghproxy.net/https://raw.githubusercontent.com/skywind3000/ECDICT/master/ecdict.csv）
+  bash tools/fetch_data.sh
+（或手动 curl -L -o data/ecdict.csv \
+  https://raw.githubusercontent.com/skywind3000/ECDICT/master/ecdict.csv）
 EOF
     exit 1
   fi

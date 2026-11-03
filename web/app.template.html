@@ -408,6 +408,49 @@ h1{font-size:34px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
 .fx-btn{margin-top:15px;padding:9px 24px;border-radius:99px;background:var(--ink);color:var(--bg);
   font-size:13px;font-weight:600;letter-spacing:.03em}
 @keyframes fxin{from{opacity:0;transform:translateY(14px) scale(.92)}to{opacity:1;transform:none}}
+/* ---------- v3：预测、引导、选择练习、搜索历史 ---------- */
+.updatebar{display:flex;align-items:center;gap:8px;margin:0 0 12px;padding:10px 14px;border-radius:14px;
+  background:color-mix(in srgb,var(--accent) 12%,var(--card));border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));
+  color:var(--accent);font-size:12.5px;font-weight:600;cursor:pointer}
+.updatebar b{font-size:16px;line-height:1}
+.forecast{margin-top:11px;padding-top:10px;border-top:1px dashed var(--line);font-size:11px;color:var(--sub);line-height:1.6}
+.card.intro{padding:15px 16px;margin-bottom:12px;border-color:color-mix(in srgb,var(--gold) 45%,var(--line));background:color-mix(in srgb,var(--gold) 6%,var(--card))}
+.intro-t{font-size:13.5px;font-weight:700;letter-spacing:.02em}
+.intro-s{font-size:11.5px;color:var(--sub);line-height:1.8;margin-top:5px}
+.intro-a{margin-top:9px;text-align:right}
+.sh{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 12px;font-size:11px;color:var(--sub)}
+.sh-lb{margin-right:2px}.sh-c{margin-left:auto;font-size:10.5px;color:var(--sub);text-decoration:underline;text-underline-offset:2px}
+.sh-t{padding:5px 10px;border-radius:99px;background:color-mix(in srgb,var(--accent) 7%,var(--card));border:1px solid var(--line);color:var(--ink);font-size:11.5px}
+.sheet-grab{width:38px;height:4px;border-radius:99px;background:color-mix(in srgb,var(--sub) 35%,transparent);margin:-12px auto 12px}
+html.sheet-open,html.sheet-open body{overflow:hidden}
+.choice-card{padding:18px 16px 16px;text-align:center}
+.spk.big{width:66px;height:66px;font-size:28px;margin:8px auto 4px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:color-mix(in srgb,var(--accent) 11%,var(--bg));color:var(--accent)}
+.choice-hint{font-size:11.5px;color:var(--sub);letter-spacing:.04em;margin:6px 0 14px}
+.cloze{font-family:var(--serif);font-size:22px;line-height:1.55;margin:12px 2px 6px;color:var(--ink);text-align:left}
+.cloze-cn{font-size:12px;color:var(--sub);text-align:left;margin:0 2px 14px;line-height:1.6}
+.opts{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.opt{width:100%;min-height:48px;padding:10px 12px;border-radius:13px;border:1px solid var(--line);
+  background:color-mix(in srgb,var(--bg) 55%,var(--card));color:var(--ink);font-family:var(--serif);
+  font-size:15px;line-height:1.4;text-align:center;transition:background .15s,border-color .15s}
+.opt:active{transform:scale(.99)}
+.opt.right{background:color-mix(in srgb,var(--ok) 14%,var(--card));border-color:var(--ok)}
+.opt.wrong{background:color-mix(in srgb,var(--bad) 12%,var(--card));border-color:var(--bad)}
+.opt.dim{opacity:.48}
+.opt:disabled{opacity:1}
+.choice-fb{margin-top:12px;font-size:13px;font-weight:650}
+.choice-fb.ok{color:var(--ok)}.choice-fb.bad{color:var(--bad)}
+html[data-fs="lg"] .qword{font-size:50px}html[data-fs="lg"] .wc-word{font-size:30px}
+html[data-fs="lg"] .opt,html[data-fs="lg"] .pvrow .en{font-size:17px}
+html[data-fs="lg"] .qzh,html[data-fs="lg"] .cloze{font-size:24px}
+html[data-fs="xl"] .qword{font-size:56px}html[data-fs="xl"] .wc-word{font-size:34px}
+html[data-fs="xl"] .opt,html[data-fs="xl"] .pvrow .en{font-size:19px}
+html[data-fs="xl"] .qzh,html[data-fs="xl"] .cloze{font-size:27px}
+html[data-contrast="high"]{--sub:#445064;--line:#aeb9ca}
+html[data-theme="dark"][data-contrast="high"]{--sub:#c9d3e1;--line:#40506a}
+@media (max-width:360px){
+  .grid2{gap:8px}.choice-card{padding:14px 12px 12px}.cloze{font-size:20px}
+}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
 }
@@ -493,7 +536,7 @@ const NATIVE_TTS = !!(window.AndroidTTS && typeof window.AndroidTTS.speak === 'f
 const WEB_TTS = 'speechSynthesis' in window;
 const TTS = NATIVE_TTS || WEB_TTS;
 const openPv = new Set();
-let lastAutoSpoken = -1;
+let lastAutoSpoken = -1, lastChoiceSpoken = -1;
 function pickVoice() {
   try {
     const vs = speechSynthesis.getVoices() || [];
@@ -543,13 +586,13 @@ function speak(t) {
 
 /* ---------- 存储 ---------- */
 const KEY = 'wordbook.v1';
-let memOnly = false, S = null, view = 'home', ctx = {}, fbTimer = null, lastQId = null, bookAll = false;
+let memOnly = false, S = null, view = 'home', ctx = {}, fbTimer = null, lastQId = null, bookAll = false, updateReady = false;
 
 function defaults() {
   return {
     v: 2, range: 0, seq: 0, learned: {}, groups: [], actives: [], cur: null, lastDone: null,
-    days: {}, star: {}, fxDay: '',
-    cfg: { maxActive: 3, maxHist: 5, recycleAt: 2, diff: 'balanced', autoSay: 1, goal: 20, autoStar: 1, theme: 'auto', fx: 1 },
+    days: {}, star: {}, wrong: {}, searchHist: [], fxDay: '',
+    cfg: { maxActive: 3, maxHist: 5, recycleAt: 2, diff: 'balanced', autoSay: 1, goal: 20, autoStar: 1, theme: 'auto', fx: 1, fs: 'md', contrast: 'normal', introOff: 0 },
     sync: { url: '', token: '', name: '', lastHash: '', lastAt: 0, inbox: [] }
   };
 }
@@ -560,7 +603,7 @@ function migrate(o) {
   d.seq = o.seq || 0;
   Object.keys(o.learned || {}).forEach(k => {
     const r = o.learned[k] || {};
-    d.learned[k] = { w: r.w || 0, r: r.r || 0, t: r.t || 0, ok: true };
+    d.learned[k] = { w: r.w || 0, r: r.r || 0, t: r.t || 0, ok: true, e: r.e || 2.5, st: r.st || 0, lp: r.lp || 0, iv: r.iv || 0 };
   });
   (o.groups || []).forEach(g => {
     if (!g || !Array.isArray(g.ids)) return;
@@ -616,10 +659,63 @@ function streakDays() {
 }
 const days_I = i => [1, 2, 4, 7, 15, 30][Math.max(0, Math.min(5, i | 0))];
 function endOfToday() { const d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime(); }
+/* 每个词自己的间隔：答错降 ease、清零连对；答对按 ease 递增，封顶 180 天 */
+function srsUpdate(rec, wrong, now) {
+  rec.e = Math.max(1.3, Math.min(3, rec.e || 2.5));
+  rec.st = rec.st || 0; rec.lp = rec.lp || 0; rec.iv = rec.iv || 0;
+  if (wrong) {
+    rec.lp++; rec.st = 0; rec.e = Math.max(1.3, rec.e - .2); rec.iv = .5;
+  } else {
+    rec.st++; rec.e = Math.min(3, rec.e + .05);
+    if (!rec.iv) rec.iv = 1;
+    else if (rec.st <= 1) rec.iv = 1;
+    else if (rec.st === 2) rec.iv = 3;
+    else rec.iv = Math.min(180, Math.max(1, Math.round(rec.iv * rec.e)));
+  }
+  rec.due = now + Math.round(rec.iv * 864e5);
+}
 function dueIds() {
   const now = endOfToday();
   return Object.keys(S.learned).filter(id => WORDS[id] && (S.learned[id].due || 0) <= now)
     .sort((a, b) => (S.learned[a].due || 0) - (S.learned[b].due || 0));
+}
+function forecastDays(n) {
+  const out = [], base = new Date();
+  for (let i = 0; i < (n || 7); i++) {
+    const a = new Date(base); a.setDate(base.getDate() + i); a.setHours(0, 0, 0, 0);
+    const b = new Date(a); b.setDate(a.getDate() + 1);
+    let c = 0;
+    for (const k in S.learned) {
+      const r = S.learned[k];
+      if (WORDS[k] && r.ok !== false && r.due >= a.getTime() && r.due < b.getTime()) c++;
+    }
+    out.push({ i, c, lab: i === 0 ? '今' : i === 1 ? '明' : '周' + '日一二三四五六'[a.getDay()] });
+  }
+  return out;
+}
+function weakIds(n) {
+  const now = Date.now();
+  return Object.keys(S.learned).filter(id => WORDS[id] && S.learned[id].ok !== false)
+    .map(id => {
+      const r = S.learned[id];
+      const age = (now - (r.t || 0)) / 864e5;
+      const score = (r.w || 0) * 2 + (r.lp || 0) * 2 + (age > 14 ? 1 : 0) - (r.st || 0) * .4;
+      return { id, score, w: r.w || 0 };
+    })
+    .filter(x => x.score > 0 && x.w > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, n || 20).map(x => x.id);
+}
+function markWrong(id, type) {
+  id = String(id);
+  if (!S.wrong) S.wrong = {};
+  const r = S.wrong[id] || (S.wrong[id] = { n: 0, t: 0, types: {} });
+  r.n++; r.t = Date.now(); r.types[type || 'recall'] = (r.types[type || 'recall'] || 0) + 1;
+}
+function wrongIds(n) {
+  return Object.keys(S.wrong || {}).filter(id => WORDS[id])
+    .sort((a, b) => (S.wrong[b].n || 0) - (S.wrong[a].n || 0) || (S.wrong[b].t || 0) - (S.wrong[a].t || 0))
+    .slice(0, n || 50);
 }
 const starIds = () => Object.keys(S.star || {}).filter(id => WORDS[id]).sort((a, b) => (S.star[b] || 0) - (S.star[a] || 0));
 function bumpDaily(n) {
@@ -652,6 +748,11 @@ function applyTheme() {
   document.documentElement.style.colorScheme = t;
   const m = document.querySelector('meta[name="theme-color"]');
   if (m) m.content = t === 'dark' ? '#0e1117' : '#f4efe4';
+}
+function applyDisplay() {
+  const c = (S && S.cfg) || {};
+  document.documentElement.dataset.fs = c.fs || 'md';
+  document.documentElement.dataset.contrast = c.contrast || 'normal';
 }
 function themeIcon() { const t = (S && S.cfg && S.cfg.theme) || 'auto'; return t === 'light' ? '☀' : t === 'dark' ? '☾' : '◐'; }
 function weekStrip() {
@@ -815,6 +916,7 @@ function answer(ok) {
   } else {
     // 不熟：直接跳到下一个词，本词放到本组最后，本组结束时再考一次
     s.fail++;
+    markWrong(id, 'recall');
     s.queue.shift();
     s.queue.push(id);
   }
@@ -858,8 +960,7 @@ function finish() {
     const r = S.learned[id];
     if (!r) return;
     const wrongWord = (s.attempts[id] || 1) > 1;
-    const idx = wrongWord ? 0 : Math.min(r.r, 5);
-    r.due = now + days_I(idx) * 864e5;
+    srsUpdate(r, wrongWord, now);
   });
   const before = todayCount();
   bumpDaily(s.ids.length);
@@ -884,7 +985,7 @@ function finish() {
   }
   const recycled = s.kind === 'learn' ? 0 : recycle(wrong);
   S.lastDone = {
-    kind: s.kind, total: s.ids.length, first, taps: s.taps, dur,
+    kind: s.kind, mode: s.mode || '', total: s.ids.length, first, taps: s.taps, dur,
     group: s.kind === 'learn' ? s.gno : s.groupId,
     wrong: wrong.length, recycled, stars: autoStars,
     today: todayCount(), goal: S.cfg.goal || 20, streak: streakDays()
@@ -897,8 +998,8 @@ function finish() {
 
 /* ---------- 视图 ---------- */
 const VIEWS = {};
-const sessName = a => a.kind === 'learn' ? `第 ${a.gno} 组` : a.kind === 'group' ? `第 ${a.groupId} 组` : a.kind === 'mix' ? '混合复习' : a.kind === 'star' ? '生词本' : a.kind === 'due' ? '今日复习' : a.kind === 'spell' ? '拼写自测' : '错词练习';
-const sessKind = a => a.kind === 'learn' ? '学习中' : a.kind === 'group' ? '复习中' : a.kind === 'mix' ? '混合复习' : a.kind === 'star' ? '生词本复习' : a.kind === 'due' ? '间隔复习' : a.kind === 'spell' ? '拼写自测' : '错词练习';
+const sessName = a => a.kind === 'learn' ? `第 ${a.gno} 组` : a.kind === 'group' ? `第 ${a.groupId} 组` : a.kind === 'mix' ? '混合复习' : a.kind === 'star' ? '生词本' : a.kind === 'due' ? '今日复习' : a.kind === 'spell' ? '拼写自测' : a.kind === 'choice' ? (a.mode === 'cloze' ? '例句填空' : '听音选义') : '错词练习';
+const sessKind = a => a.kind === 'learn' ? '学习中' : a.kind === 'group' ? '复习中' : a.kind === 'mix' ? '混合复习' : a.kind === 'star' ? '生词本复习' : a.kind === 'due' ? '间隔复习' : a.kind === 'spell' ? '拼写自测' : a.kind === 'choice' ? '选择练习' : '错词练习';
 
 VIEWS.home = function () {
   const st = rangeStats();
@@ -907,6 +1008,15 @@ VIEWS.home = function () {
   const acts = S.actives.slice().sort((a, b) => b.act - a.act);
   const head = acts[0];
   const remain = st.pool - st.learned;
+  const fc = forecastDays(7);
+  const weak = weakIds(20);
+  const wrongN = wrongIds().length;
+  const intro = (!S.cfg.introOff && !S.seq && !Object.keys(S.learned).length) ? `
+    <div class="card intro">
+      <div class="intro-t">第一次用？三步开始</div>
+      <div class="intro-s">① 选一个词库　② 开始第 1 组，先熟悉 20 词　③ 轻点卡片看释义，会的点“掌握”</div>
+      <div class="intro-a"><button class="more-btn" data-act="hideIntro">知道了</button></div>
+    </div>` : '';
   const primary = head
     ? `<button class="cta" data-act="resume" data-id="${head.sid}"><span>继续${sessName(head)}</span><small>还剩 ${head.queue.length} 词</small></button>`
     : (remain > 0
@@ -923,6 +1033,7 @@ VIEWS.home = function () {
     </div>`).join('');
 
   return `
+  ${updateReady ? `<div class="updatebar" data-act="applyUpdate"><b>↻</b><span>新版本已就绪，点这里刷新</span></div>` : ''}
   <div class="hd">
     <div><div class="eyebrow">WORD BOOK · 词书</div><h1>词书</h1></div>
     <div class="hd-tools">
@@ -938,8 +1049,10 @@ VIEWS.home = function () {
     <div class="sub">${st.groups} 组 · 错词 ${st.wrong} · 待学 ${remain}</div>
     <div class="sub streak">🔥 连续 <b>${streakDays()}</b> 天 · 今日 <b>${todayCount()}</b>/${S.cfg.goal || 20} 词</div>
     ${weekStrip()}
+    <div class="forecast">未来 7 天到期：${fc.slice(1, 6).map(x => `${x.lab} ${x.c}`).join(' · ')}${fc.slice(1, 6).every(x => !x.c) ? '暂无' : ''}</div>
     ${S.fxDay === todayKey() ? '<div class="reward">✦ 今日奖励已领取</div>' : ''}
   </div>
+  ${intro}
   <div class="chips">${RANGES.map(r => `<button class="chip ${S.range === r.k ? 'on' : ''}" data-act="range" data-id="${r.k}">${r.n}</button>`).join('')}</div>
   <div class="actions">${primary}${sub}</div>
   ${due ? `<button class="cta ghost" data-act="dueReview" style="margin-bottom:10px"><span>🔁 今日复习</span><small>${due} 个词到期</small></button>` : ''}
@@ -950,6 +1063,10 @@ VIEWS.home = function () {
     <button class="card mini ${starIds().length ? '' : 'off'}" data-act="starBook"><span class="em">⭐</span><b>生词本</b><span>${starIds().length} 词 · 收录与复习</span></button>
     <button class="card mini" data-act="settings"><span class="em">🎯</span><b>今日目标</b><span>${todayCount()}/${S.cfg.goal || 20} 词 · 连续 ${streakDays()} 天</span></button>
     <button class="card mini ${st.learned ? '' : 'off'}" data-act="spellStart"><span class="em">⌨️</span><b>拼写自测</b><span>看中文写英文 · 20 词</span></button>
+    <button class="card mini ${st.learned ? '' : 'off'}" data-act="listenStart"><span class="em">👂</span><b>听音选义</b><span>听发音 · 四选一</span></button>
+    <button class="card mini ${st.learned ? '' : 'off'}" data-act="clozeStart"><span class="em">🕳️</span><b>例句填空</b><span>看句子补单词</span></button>
+    <button class="card mini ${wrongN ? '' : 'off'}" data-act="wrongBook"><span class="em">✍️</span><b>错题本</b><span>${wrongN} 词 · 按错误类型</span></button>
+    ${weak.length ? `<button class="card mini" data-act="weakBook"><span class="em">🩹</span><b>薄弱词</b><span>${weak.length} 词 · 优先补</span></button>` : ''}
   </div>
   ${syncBar()}
   <div class="note">${memOnly ? '⚠️ 当前环境无法保存进度，建议用 Chrome 打开' : '进度自动保存在本机浏览器'}</div>`;
@@ -1034,12 +1151,14 @@ VIEWS.done = function () {
       : d.kind === 'mix' ? '混合复习完成'
         : d.kind === 'star' ? '生词本复习完成'
           : d.kind === 'due' ? '今日复习完成'
-            : d.kind === 'spell' ? '拼写自测完成' : '错词练习完成';
+            : d.kind === 'spell' ? '拼写自测完成'
+              : d.kind === 'choice' ? (d.mode === 'cloze' ? '例句填空完成' : '听音选义完成') : '错词练习完成';
   const rate = pctOf(d.first, d.total);
   let again = '';
   if (d.kind === 'learn') again = `<button class="cta" data-act="newgroup"><span>下一组</span><small>继续学习</small></button>`;
   else if (d.kind === 'group') again = `<button class="cta" data-act="reshuffle" data-id="${d.group}"><span>再复习本组</span><small>${d.total} 词</small></button>`;
   else if (d.kind === 'mix') again = `<button class="cta" data-act="mix"><span>再抽一组</span><small>随机 20 词</small></button>`;
+  else if (d.kind === 'choice') again = `<button class="cta" data-act="${d.mode === 'cloze' ? 'clozeStart' : 'listenStart'}"><span>再练一轮</span><small>${d.mode === 'cloze' ? '例句填空' : '听音选义'}</small></button>`;
   return `
   <div class="done-hero"><div class="em">🎉</div><div class="t">${title}</div>
     <div class="s">${d.first} / ${d.total} 词一次就掌握</div></div>
@@ -1076,6 +1195,121 @@ VIEWS.spell = function () {
     <input id="spellIn" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="输入英文，回车检查" value="${esc(r.ans || '')}" ${r.res ? 'disabled' : ''}>
     <div class="res ${r.res}">${r.res === 'ok' ? '✓ 拼写正确' : r.res === 'bad' ? `✗ 正确答案：<b>${esc(w.w)}</b>` : ''}</div>
     <div class="qbtns"><button class="btn ok" data-act="spellCheck" ${r.res ? 'disabled' : ''}>检查</button></div>
+  </div>`;
+};
+
+/* ---------- 听音选义 / 例句填空 / 错题本 ---------- */
+const TYPE_CN = { recall: '认词', listen: '听音', cloze: '填空', spell: '拼写' };
+function blankCloze(w) {
+  if (!w || !w.ex || !w.ex[0]) return '';
+  const word = w.w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp('\\b' + word + '(?:s|es|ed|d|ing)?\\b', 'i');
+  return re.test(w.ex[0]) ? w.ex[0].replace(re, '____') : '';
+}
+function choiceDistractors(w, mode, right) {
+  const out = [], seen = new Set([String(right).toLowerCase()]);
+  let tries = 0;
+  while (out.length < 3 && tries++ < 400) {
+    const x = WORDS[Math.floor(Math.random() * WORDS.length)];
+    if (!x || x.id === w.id) continue;
+    const t = mode === 'cloze' ? x.w : (x.senses && x.senses[0] && x.senses[0][1] && x.senses[0][1][0]);
+    if (!t || seen.has(String(t).toLowerCase())) continue;
+    seen.add(String(t).toLowerCase()); out.push(String(t));
+  }
+  while (out.length < 3) out.push('—');
+  return out;
+}
+function prepareChoice(s) {
+  if (!s || !s.queue.length) return;
+  const id = s.queue[0];
+  if (s.ch && String(s.ch.id) === String(id)) return;
+  const w = WORDS[id];
+  let mode = s.mode === 'cloze' ? 'cloze' : 'listen';
+  let right = '', sent = '';
+  if (mode === 'cloze') {
+    sent = blankCloze(w);
+    if (!sent) mode = 'listen';
+    else right = w.w;
+  }
+  if (mode === 'listen') right = (w.senses && w.senses[0] && w.senses[0][1] && w.senses[0][1][0]) || w.tr || w.w;
+  const opts = choiceDistractors(w, mode, right);
+  const ans = Math.floor(Math.random() * (opts.length + 1));
+  opts.splice(ans, 0, right);
+  s.ch = { id, mode, opts, ans, picked: null, sent };
+}
+function startChoice(mode) {
+  let ids = rangeLearnedIds().filter(id => WORDS[id]);
+  if (mode === 'cloze') ids = ids.filter(id => blankCloze(WORDS[id]));
+  if (ids.length < 2) return toast(mode === 'cloze' ? '带例句的已学词还不够，先学一组吧' : '先学几个单词再练');
+  ensureSlot();
+  const s = newSession('choice', shuffle(ids.slice()).slice(0, 20), { range: S.range, seen: true, mode });
+  S.actives.push(s); S.cur = s.sid; save(); go('choice');
+}
+VIEWS.choice = function () {
+  const s = cur();
+  if (!s) return VIEWS.home();
+  if (!s.queue.length) return VIEWS.done();
+  prepareChoice(s);
+  const ch = s.ch, w = WORDS[ch.id];
+  const done = s.ids.length - s.queue.length;
+  const picked = ch.picked;
+  return `
+  <div class="topbar">
+    <button class="tbtn" data-act="quit">✕</button>
+    <div class="ttl">${ch.mode === 'cloze' ? '例句填空' : '听音选义'} <span>· 剩 ${s.queue.length} 词</span></div>
+    <button class="tbtn starb ${S.star[ch.id] ? 'on' : ''}" data-act="star" data-id="${ch.id}" aria-label="收藏">${S.star[ch.id] ? '★' : '☆'}</button>
+  </div>
+  <div class="bar" style="margin:-6px 0 14px"><i style="width:${pctOf(done, s.ids.length)}%"></i></div>
+  <div class="qcard choice-card">
+    ${ch.mode === 'cloze'
+      ? `<div class="choice-hint">选一个词补全句子</div><div class="cloze">${esc(ch.sent)}</div><div class="cloze-cn">${esc(w.tr)}</div>`
+      : `<button class="spk big" data-act="playChoice" aria-label="再听一次">🔊</button><div class="choice-hint">听发音，选中文意思</div>`}
+    <div class="opts">
+      ${ch.opts.map((t, i) => {
+        const cls = picked === null ? '' : (i === ch.ans ? ' right' : (i === picked ? ' wrong' : ' dim'));
+        return `<button class="opt${cls}" data-act="choose" data-id="${i}" ${picked === null ? '' : 'disabled'}>${esc(t)}</button>`;
+      }).join('')}
+    </div>
+    ${picked !== null ? `<div class="choice-fb ${picked === ch.ans ? 'ok' : 'bad'}">${picked === ch.ans ? '✓ 对了' : `✗ 正确答案：${esc(ch.opts[ch.ans])}`}</div>` : ''}
+  </div>`;
+};
+VIEWS.wrongbook = function () {
+  const ids = wrongIds(100);
+  return `
+  <div class="topbar">
+    <button class="tbtn" data-act="home">‹</button>
+    <div class="ttl">错题本 <span>· ${ids.length} 词</span></div>
+    <span style="width:36px"></span>
+  </div>
+  ${ids.length ? `<button class="cta" data-act="wrongStart"><span>练最近的错题</span><small>${Math.min(20, ids.length)} 词 · 认词复习</small></button>` : ''}
+  <div class="blist" style="margin-top:10px">
+    ${ids.length ? ids.map(id => {
+      const w = WORDS[id], r = S.wrong[id] || {};
+      const ty = Object.keys(r.types || {}).map(k => TYPE_CN[k] || k).join(' / ');
+      return `<div class="brow" data-act="wordCard" data-id="${id}">
+        <div class="n">${esc(w.w)}</div>
+        <div class="info">错 ${r.n || 0} 次${ty ? ` · ${ty}` : ''} ${r.t ? `· ${fmtDate(r.t)}` : ''}</div>
+        <div class="go">›</div></div>`;
+    }).join('') : `<div class="empty">还没有错题<br>答错或拼错的词会自动进来</div>`}
+  </div>`;
+};
+VIEWS.weak = function () {
+  const ids = weakIds(100);
+  return `
+  <div class="topbar">
+    <button class="tbtn" data-act="home">‹</button>
+    <div class="ttl">薄弱词 <span>· ${ids.length} 词</span></div>
+    <span style="width:36px"></span>
+  </div>
+  ${ids.length ? `<button class="cta" data-act="weakStart"><span>只练薄弱词</span><small>${Math.min(20, ids.length)} 词</small></button>` : ''}
+  <div class="blist" style="margin-top:10px">
+    ${ids.length ? ids.map(id => {
+      const w = WORDS[id], r = S.learned[id] || {};
+      return `<div class="brow" data-act="wordCard" data-id="${id}">
+        <div class="n">${esc(w.w)}</div>
+        <div class="info">错 ${r.w || 0} 次 · 遗忘 ${r.lp || 0} 次 · 连对 ${r.st || 0} · 间隔 ${r.iv ? Math.round(r.iv) + ' 天' : '新'}</div>
+        <div class="go">›</div></div>`;
+    }).join('') : `<div class="empty">还没有薄弱词<br>多复习几次后，这里会列出需要补的词</div>`}
   </div>`;
 };
 
@@ -1119,6 +1353,7 @@ function searchList(q) {
 }
 VIEWS.search = function () {
   const q = ctx.q || '';
+  const hist = (S.searchHist || []).filter(x => x && x !== q).slice(0, 6);
   return `
   <div class="topbar">
     <button class="tbtn" data-act="home">‹</button>
@@ -1128,6 +1363,7 @@ VIEWS.search = function () {
   <div class="searchbar">
     <input id="searchIn" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="输入英文或中文意思" value="${esc(q)}">
   </div>
+  ${(!q && hist.length) ? `<div class="sh"><span class="sh-lb">最近查过</span>${hist.map(x => `<button class="sh-t" data-act="searchHistory" data-id="${esc(x)}">${esc(x)}</button>`).join('')}<button class="sh-c" data-act="clearHistory" aria-label="清空搜索历史">清空</button></div>` : ''}
   <div class="srlist" id="srlist">${searchList(q)}</div>`;
 };
 
@@ -1195,6 +1431,13 @@ function render() {
       speak(WORDS[c.queue[0]].w);
     }
   }
+  if (view === 'choice' && S.cfg.autoSay) {
+    const c = cur();
+    if (c && c.ch && c.ch.mode === 'listen' && c.ch.id !== lastChoiceSpoken) {
+      lastChoiceSpoken = c.ch.id;
+      speak(WORDS[c.ch.id].w);
+    }
+  }
 }
 function go(v, c) { view = v; ctx = c || {}; lastQId = null; render(); }
 
@@ -1204,16 +1447,25 @@ function openModal(html) {
   closeModal();
   modalEl = document.createElement('div');
   modalEl.className = 'sheet-bg';
-  modalEl.innerHTML = `<div class="sheet">${html}</div>`;
-  modalEl.addEventListener('click', e => { if (e.target === modalEl) closeModal(); });
+  modalEl.innerHTML = `<div class="sheet"><div class="sheet-grab" aria-hidden="true"></div>${html}</div>`;
+  modalEl.addEventListener('click', e => { if (e.target === modalEl) { cardStack = []; closeModal(); } });
   document.body.appendChild(modalEl);
+  document.documentElement.classList.add('sheet-open');
 }
-function closeModal() { if (modalEl) { modalEl.remove(); modalEl = null; } }
+function closeModal() {
+  if (modalEl) { modalEl.remove(); modalEl = null; }
+  document.documentElement.classList.remove('sheet-open');
+}
 
 /* ---------- 词卡 ---------- */
-function openWordCard(key) {
+let cardStack = [];
+function openWordCard(key, push) {
   const w = lookupWord(key);
   if (!w) return toast('词库里没有这个词');
+  if (push !== false) cardStack.push(key);
+  if (!cardStack.length) cardStack = [key];
+  const back = cardStack.length > 1;
+  const sc = modalEl ? (modalEl.querySelector('.sheet') || {}).scrollTop || 0 : 0;
   const main = w.id !== undefined;
   const sec = [];
   if (w.senses && w.senses.length) sec.push(`<div class="wc-block"><div class="wc-lb">释义</div>${senseBlock(w)}</div>`);
@@ -1234,6 +1486,7 @@ function openWordCard(key) {
         ${w.stars ? `<div class="wc-stars">${starRow(w.stars)}</div>` : ''}
       </div>
       <div class="wc-acts">
+        ${back ? `<button class="icon" data-act="cardBack" aria-label="返回上一个词">‹</button>` : ''}
         <button class="icon" data-act="sayWord" data-id="${esc(w.w)}" aria-label="朗读">🔊</button>
         ${main ? `<button class="icon starb ${S.star[w.id] ? 'on' : ''}" data-act="wordStar" data-id="${w.id}" aria-label="收藏">${S.star[w.id] ? '★' : '☆'}</button>` : ''}
         <button class="sheet-x" data-act="closeSheet" aria-label="关闭">✕</button>
@@ -1242,6 +1495,7 @@ function openWordCard(key) {
     ${sec.join('')}
     ${main ? `<div class="wc-tags">${tagNames(w.mask).map(t => `<span class="wtag">${esc(t)}</span>`).join('')}</div>` : ''}
   `);
+  if (sc) { const sh = modalEl.querySelector('.sheet'); if (sh) sh.scrollTop = sc; }
 }
 
 /* ---------- 完成奖励 ---------- */
@@ -1422,6 +1676,8 @@ const ACTIONS = {
     openModal(`
     <h3>设置</h3>
     <div class="srow"><span>外观</span>${seg('theme', [['auto', '跟随系统'], ['light', '浅色'], ['dark', '深色']])}</div>
+    <div class="srow"><span>字号</span>${seg('fs', [['md', '标准'], ['lg', '大'], ['xl', '特大']])}</div>
+    <div class="srow"><span>对比度</span>${seg('contrast', [['normal', '标准'], ['high', '高对比']])}</div>
     <div class="srow"><span>完成奖励动效</span>${seg('fx', [[1, '开'], [0, '关']])}</div>
     <div class="srow"><span>未完成组上限</span>${seg('maxActive', [[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']])}</div>
     <div class="srow"><span>分组难度</span>${seg('diff', [['balanced', '均衡'], ['ramp', '递进']])}</div>
@@ -1459,15 +1715,56 @@ const ACTIONS = {
     save(); applyTheme(); render();
     toast('外观：' + ({ auto: '跟随系统', light: '浅色', dark: '深色' })[S.cfg.theme]);
   },
-  wordCard(key) { openWordCard(key); },
+  wordCard(key) {
+    if (view === 'search' && ctx.q) {
+      const q = String(ctx.q).trim();
+      if (q) { S.searchHist = [q].concat((S.searchHist || []).filter(x => x !== q)).slice(0, 8); save(); }
+    }
+    openWordCard(key);
+  },
+  searchHistory(q) { ctx.q = q; render(); setTimeout(() => { const i = document.getElementById('searchIn'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 30); },
+  clearHistory() { S.searchHist = []; save(); render(); },
+  cardBack() {
+    if (cardStack.length > 1) { cardStack.pop(); openWordCard(cardStack[cardStack.length - 1], false); }
+    else ACTIONS.closeSheet();
+  },
   wordStar(key) {
     const w = lookupWord(key); if (!w || w.id === undefined) return;
     if (S.star[w.id]) delete S.star[w.id]; else S.star[w.id] = Date.now();
-    save(); render(); openWordCard(w.id); buzz(8);
+    save(); render(); openWordCard(w.id, false); buzz(8);
   },
   sayWord(id) { speak(String(id || '')); },
   sayText(id) { speak(String(id || '')); },
-  closeSheet() { closeModal(); },
+  closeSheet() { cardStack = []; closeModal(); },
+  playChoice() { const s = cur(); if (s && s.ch) speak(WORDS[s.ch.id].w); },
+  choose(i) {
+    const s = cur(); if (!s || !s.ch || s.ch.picked !== null) return;
+    const ch = s.ch, id = ch.id, n = Number(i), good = n === ch.ans;
+    ch.picked = n;
+    s.attempts[id] = (s.attempts[id] || 0) + (good ? 1 : 2);
+    if (!good) { markWrong(id, ch.mode); }
+    if (good) speak(WORDS[id].w);
+    save(); render();
+    setTimeout(() => {
+      const c = S.actives.find(a => a.sid === s.sid); if (!c) return;
+      c.queue.shift();
+      if (!good) c.queue.push(id);
+      c.ch = null;
+      if (!c.queue.length) { finish(); return; }
+      save(); render();
+    }, good ? 520 : 1250);
+  },
+  listenStart() { startChoice('listen'); },
+  clozeStart() { startChoice('cloze'); },
+  wrongBook() { go('wrongbook'); },
+  weakBook() { go('weak'); },
+  wrongStart() { const ids = wrongIds(20); if (!ids.length) return toast('还没有错题'); startPractice(ids); },
+  weakStart() { const ids = weakIds(20); if (!ids.length) return toast('还没有薄弱词'); startPractice(ids); },
+  hideIntro() { S.cfg.introOff = 1; save(); render(); },
+  applyUpdate() {
+    try { if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' }); } catch (e) {}
+    setTimeout(() => location.reload(), 120);
+  },
   newgroup() { startLearn(); },
   resume(id) {
     const s = S.actives.find(a => a.sid === id);
@@ -1521,6 +1818,7 @@ const ACTIONS = {
     if (good) speak(w.w);
     s.sp = { res: good ? 'ok' : 'bad', ans: typed };
     s.attempts[id] = (s.attempts[id] || 0) + (good ? 1 : 2);
+    if (!good) markWrong(id, 'spell');
     save(); render();
     setTimeout(() => {
       const c = S.actives.find(a => a.sid === s.sid); if (!c) return;
@@ -1587,6 +1885,7 @@ document.addEventListener('click', e => {
   }
   if (k === 'diff') { S.cfg.diff = b.dataset.v; save(); ACTIONS.settings(); return; }
   if (k === 'theme') { S.cfg.theme = b.dataset.v; save(); applyTheme(); ACTIONS.settings(); return; }
+  if (k === 'fs' || k === 'contrast') { S.cfg[k] = b.dataset.v; save(); applyDisplay(); ACTIONS.settings(); return; }
   if (k === 'fx') { S.cfg.fx = Number(b.dataset.v); save(); ACTIONS.settings(); return; }
   if (k === 'syncbind') { syncBind(); return; }
   if (k === 'syncpush') { syncPush(); return; }
@@ -1642,9 +1941,10 @@ S.sync = Object.assign(defaults().sync, S.sync || {});
 if (!S.sync.url && /^https?:\/\//.test(location.origin)) S.sync.url = location.origin;
 S.learned = S.learned || {}; S.groups = S.groups || []; S.actives = S.actives || [];
 S.days = S.days || {}; S.star = S.star || {};
+S.wrong = S.wrong || {}; S.searchHist = S.searchHist || [];
 if (!S.actives.some(a => a.sid === S.cur)) S.cur = null;
 S.actives.forEach(a => { if (!a.queue) a.queue = a.ids.slice(); a.fb = null; a.peek = false; });
-applyTheme();
+applyTheme(); applyDisplay();
 try {
   if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     if ((S.cfg.theme || 'auto') === 'auto') { applyTheme(); render(); }
@@ -1656,6 +1956,13 @@ window.addEventListener('pagehide', save);
 
 /* ---------- PWA（iOS/安卓 添加到主屏幕后离线可用） ---------- */
 if ((location.protocol === 'http:' || location.protocol === 'https:') && 'serviceWorker' in navigator && !NATIVE_TTS) {
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data && e.data.type === 'WB_UPDATED') {
+      updateReady = true;
+      if (view === 'home') render();
+      toast('新版本已就绪，点顶部提示刷新');
+    }
+  });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   });

@@ -8,6 +8,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const zlib = require('zlib');
 
 const ROOT = __dirname;
 const DATA = process.env.DATA_DIR || path.join(ROOT, 'data');
@@ -170,13 +171,29 @@ const MIME = {
   '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
   '.apk': 'application/vnd.android.package-archive', '.txt': 'text/plain; charset=utf-8'
 };
-function serveFile(res, file, download, cache) {
+const COMPRESSIBLE = /^(?:text\/|application\/(?:json|manifest\+json|javascript)|image\/svg\+xml)/i;
+const GZIP_MIN_BYTES = 1024;
+
+/* 文本资源按 Accept-Encoding 协商 gzip；图片 / APK 等二进制原样发送。
+ * Content-Length 按实际发送的字节数写，Vary 让缓存区分压缩与否。 */
+function serveFile(req, res, file, download, cache) {
   fs.readFile(file, (err, buf) => {
     if (err) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end('not found'); return; }
-    const h = { 'content-type': MIME[path.extname(file)] || 'application/octet-stream', 'cache-control': cache || 'no-cache' };
-    if (path.basename(file) === 'manifest.json') h['content-type'] = 'application/manifest+json; charset=utf-8';
+    const type = path.basename(file) === 'manifest.json'
+      ? 'application/manifest+json; charset=utf-8'
+      : (MIME[path.extname(file).toLowerCase()] || 'application/octet-stream');
+    const h = { 'content-type': type, 'cache-control': cache || 'no-cache' };
     if (download) h['content-disposition'] = 'attachment; filename="' + path.basename(file) + '"';
-    res.writeHead(200, h); res.end(buf);
+    if (COMPRESSIBLE.test(type)) h['vary'] = 'accept-encoding';
+    const gzip = !download && buf.length >= GZIP_MIN_BYTES && COMPRESSIBLE.test(type)
+      && /\bgzip\b/i.test(String(req.headers['accept-encoding'] || ''));
+    if (!gzip) { h['content-length'] = buf.length; res.writeHead(200, h); res.end(buf); return; }
+    zlib.gzip(buf, { level: 6 }, (e, z) => {
+      if (e) { h['content-length'] = buf.length; res.writeHead(200, h); res.end(buf); return; }
+      h['content-encoding'] = 'gzip';
+      h['content-length'] = z.length;
+      res.writeHead(200, h); res.end(z);
+    });
   });
 }
 
@@ -193,18 +210,18 @@ const handler = async (req, res) => {
   try {
     /* ---------- 页面 ---------- */
     if (p === '/' ) { res.writeHead(302, { location: '/vocab.html' }); res.end(); return; }
-    if (p === '/admin' || p === '/admin.html') return serveFile(res, path.join(ROOT, 'admin.html'));
-    if (p === '/student.html' || p === '/vocab.html' || p === '/index.html') return serveFile(res, path.join(PUBLIC, 'vocab.html'));
-    if (p === '/manifest.json' || p === '/manifest.webmanifest') return serveFile(res, path.join(PUBLIC, 'manifest.json'));
+    if (p === '/admin' || p === '/admin.html') return serveFile(req, res, path.join(ROOT, 'admin.html'));
+    if (p === '/student.html' || p === '/vocab.html' || p === '/index.html') return serveFile(req, res, path.join(PUBLIC, 'vocab.html'));
+    if (p === '/manifest.json' || p === '/manifest.webmanifest') return serveFile(req, res, path.join(PUBLIC, 'manifest.json'));
     if (p === '/sw.js') {
       res.setHeader('service-worker-allowed', '/');
-      return serveFile(res, path.join(PUBLIC, 'sw.js'), false, 'no-store');
+      return serveFile(req, res, path.join(PUBLIC, 'sw.js'), false, 'no-store');
     }
-    if (p === '/favicon.ico' || p === '/favicon.png') return serveFile(res, path.join(PUBLIC, 'icons/favicon-32.png'));
-    if (p === '/apple-touch-icon.png' || p === '/apple-touch-icon-precomposed.png') return serveFile(res, path.join(PUBLIC, 'icons/apple-touch-icon.png'));
-    if (p.startsWith('/icons/') && !p.includes('..')) return serveFile(res, path.join(PUBLIC, p.slice(1)));
-    if (p.startsWith('/apk/')) return serveFile(res, path.join(ROOT, 'apk', p.slice(5)), true);
-    if (p.startsWith('/static/')) return serveFile(res, path.join(PUBLIC, p.slice(8)));
+    if (p === '/favicon.ico' || p === '/favicon.png') return serveFile(req, res, path.join(PUBLIC, 'icons/favicon-32.png'));
+    if (p === '/apple-touch-icon.png' || p === '/apple-touch-icon-precomposed.png') return serveFile(req, res, path.join(PUBLIC, 'icons/apple-touch-icon.png'));
+    if (p.startsWith('/icons/') && !p.includes('..')) return serveFile(req, res, path.join(PUBLIC, p.slice(1)));
+    if (p.startsWith('/apk/')) return serveFile(req, res, path.join(ROOT, 'apk', p.slice(5)), true);
+    if (p.startsWith('/static/')) return serveFile(req, res, path.join(PUBLIC, p.slice(8)));
     if (p === '/api/health') {
       res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, ts: Date.now(), students: Object.keys(DB.students).length }));
