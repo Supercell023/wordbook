@@ -4,10 +4,10 @@ set -e
 export PATH=/usr/lib/jvm/java-17-openjdk-arm64/bin:$PATH
 BT=/root/android-sdk/android-14        # 提供 d8.jar / apksigner.jar
 AJ=/root/android-sdk/android-34/android.jar
-SRC=/root/workspace/vocab/android
+SRC="$(cd "$(dirname "$0")" && pwd)"
 OUT=/tmp/apkbuild
 rm -rf "$OUT"; mkdir -p "$OUT/gen" "$OUT/classes" "$OUT/dex" "$SRC/assets"
-cp /root/workspace/vocab/vocab.html "$SRC/assets/vocab.html"
+[ -f "$SRC/assets/vocab.html" ] || { echo "缺少 assets/vocab.html，请先在仓库根目录运行 ./build.sh sync"; exit 1; }
 
 # 1. 资源 + 清单 → 未签名 APK
 aapt package -f -M "$SRC/AndroidManifest.xml" -S "$SRC/res" -A "$SRC/assets" \
@@ -32,5 +32,5 @@ fi
 java -jar "$BT/lib/apksigner.jar" sign --ks "$SRC/debug.keystore" --ks-pass pass:android \
   --key-pass pass:android --out "$OUT/wordbook.apk" "$OUT/aligned.apk"
 java -jar "$BT/lib/apksigner.jar" verify "$OUT/wordbook.apk"
-cp "$OUT/wordbook.apk" "$SRC/单词本.apk"
-ls -l "$SRC/单词本.apk"
+cp "$OUT/wordbook.apk" "$SRC/wordbook.apk"
+ls -l "$SRC/wordbook.apk"
