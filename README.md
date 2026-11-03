@@ -19,7 +19,7 @@
 <img src="docs/screenshots/shot-home.png" width="22%" alt="首页">
 <img src="docs/screenshots/shot-preview.png" width="22%" alt="熟悉单词">
 <img src="docs/screenshots/shot-v2-quiz.png" width="22%" alt="答题">
-<img src="docs/screenshots/老师端-首页.png" width="22%" alt="老师端">
+<img src="docs/screenshots/teacher-admin.png" width="22%" alt="老师端">
 
 </div>
 
