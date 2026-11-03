@@ -415,6 +415,10 @@ console.log('\n[17] 多义项、英文词性与词卡');
   ok(doc.body.textContent.includes('英英释义'), '词卡有英英释义标题');
   ok(doc.querySelectorAll('.sheet .wc-en').length > 0, '词卡渲染英文释义');
   ok(doc.querySelectorAll('.sheet .form').length > 0, '词卡渲染词形 chips');
+  const mainClose = doc.querySelector('.sheet-x');
+  ok(mainClose && mainClose.parentElement.classList.contains('wc-acts'), '关闭按钮与朗读/收藏同一操作栏');
+  ok(!!doc.querySelector('.wc-acts .starb'), '操作栏含收藏星标');
+  ok(!doc.querySelector('.sheet > .sheet-x'), '关闭按钮不再绝对定位在词卡右上角');
   const fam = doc.querySelector('.sheet .famw');
   ok(!!fam && fam.dataset.act === 'wordCard', '词卡里的同族词可点击');
   if (fam) {
@@ -422,7 +426,8 @@ console.log('\n[17] 多义项、英文词性与词卡');
     ok((doc.querySelector('.wc-word') || {}).textContent === fam.dataset.id, '点同族词打开该词词卡');
     ok(doc.body.textContent.includes('释义') || doc.body.textContent.includes('暂无中文释义'), '同族词词卡有释义');
   }
-  doc.querySelector('.sheet-x').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  const closeBtn = doc.querySelector('.sheet-x');
+  closeBtn.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
   ok(!doc.querySelector('.sheet'), '关闭词卡');
 }
 

@@ -354,9 +354,10 @@ h1{font-size:34px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
 /* 词卡 */
 .wc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .wc-word{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.05;word-break:break-word}
-.sheet-x{position:absolute;top:13px;right:13px;width:32px;height:32px;border-radius:50%;
+.sheet-x{flex:none;width:36px;height:36px;border-radius:50%;
   background:color-mix(in srgb,var(--bg) 70%,var(--card));border:1px solid var(--line);
-  color:var(--sub);font-size:12px;line-height:1;z-index:2}
+  color:var(--sub);font-size:13px;line-height:1}
+.wc-acts .sheet-x{margin-left:2px}
 .wc-stars{margin-top:6px}
 .wc-stars .stars{font-size:12px;color:var(--gold);letter-spacing:1.5px}
 .more-btn{margin-top:11px;padding:7px 11px;border-radius:8px;background:transparent;
@@ -1225,7 +1226,6 @@ function openWordCard(key) {
   if (w.ex) sec.push(`<div class="wc-block"><div class="wc-lb">例句</div><div class="wc-ex-en">${esc(w.ex[0])}<button class="spk" data-act="sayText" data-id="${esc(w.ex[0])}">🔊</button></div><div class="wc-ex-cn">${esc(w.ex[1])}</div></div>`);
   if (!sec.length) sec.push(`<div class="wc-block"><div class="wc-famd">${esc(w.famd || '暂无中文释义')}</div></div>`);
   openModal(`
-    <button class="sheet-x" data-act="closeSheet" aria-label="关闭">✕</button>
     <div class="wc-head">
       <div>
         <div class="wc-word">${esc(w.w)}</div>
@@ -1236,6 +1236,7 @@ function openWordCard(key) {
       <div class="wc-acts">
         <button class="icon" data-act="sayWord" data-id="${esc(w.w)}" aria-label="朗读">🔊</button>
         ${main ? `<button class="icon starb ${S.star[w.id] ? 'on' : ''}" data-act="wordStar" data-id="${w.id}" aria-label="收藏">${S.star[w.id] ? '★' : '☆'}</button>` : ''}
+        <button class="sheet-x" data-act="closeSheet" aria-label="关闭">✕</button>
       </div>
     </div>
     ${sec.join('')}
