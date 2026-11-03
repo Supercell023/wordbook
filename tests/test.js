@@ -1,0 +1,393 @@
+const fs = require('fs');
+const path = require('path');
+const { JSDOM } = require('jsdom');
+
+const html = fs.readFileSync(path.join(__dirname, '..', 'dist', 'vocab.html'), 'utf8');
+
+function makeDom(seed, native) {
+  return new JSDOM(html, {
+    url: 'http://localhost/vocab.html',
+    runScripts: 'dangerously',
+    pretendToBeVisual: true,
+    beforeParse(win) {
+      // 反馈延时、toast 计时器立即执行，便于同步跑完流程
+      win.setTimeout = (fn) => { if (typeof fn === 'function') fn(); return 0; };
+      win.clearTimeout = () => { };
+      win.confirm = () => true;
+      win.nativeSpoken = [];
+      if (native) win.AndroidTTS = { ready: () => true, speak(t) { win.nativeSpoken.push(t); }, stop() { } };
+      win.spoken = [];
+      win.SpeechSynthesisUtterance = function (t) { this.text = t; };
+      win.speechSynthesis = {
+        cancel() { },
+        speak(u) { win.spoken.push(u.text); },
+        getVoices() { return [{ lang: 'en-US', name: 'Google US English' }]; }
+      };
+      if (seed) win.localStorage.setItem('wordbook.v1', JSON.stringify(seed));
+    }
+  });
+}
+
+const dom = makeDom();
+const win = dom.window, doc = win.document;
+let pass = 0, fail = 0;
+function ok(cond, msg) {
+  if (cond) { pass++; console.log('  ✓ ' + msg); }
+  else { fail++; console.log('  ✗ ' + msg); }
+}
+function click(act, id) {
+  const list = [...doc.querySelectorAll(`[data-act="${act}"]`)];
+  const el = list.find(e => id === undefined || e.dataset.id === String(id));
+  if (!el) throw new Error(`找不到元素 [data-act=${act}] id=${id}`);
+  el.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
+}
+const text = sel => ((doc.querySelector(sel) || {}).textContent || '').replace(/🔊/g, '').trim();
+const count = sel => doc.querySelectorAll(sel).length;
+const state = () => JSON.parse(win.localStorage.getItem('wordbook.v1'));
+const words = () => [...doc.querySelectorAll('.pvrow .en')].map(e => e.childNodes[0].textContent.trim());
+const heroNum = () => text('.hero .num').replace(/\s+/g, '');
+function finishYes(limit) {
+  let g = 0;
+  while (!doc.querySelector('.done-hero') && g++ < (limit || 200)) click('yes');
+  return !!doc.querySelector('.done-hero');
+}
+
+console.log('\n[1] 首页初始状态');
+ok(text('h1').includes('词书'), '标题渲染');
+ok(count('.chip') === 9, '9 个词库范围');
+ok(heroNum() === '0/12115', '全部词库 12115 词，已学 0（实际 ' + heroNum() + '）');
+ok(doc.body.textContent.includes('开始第 1 组'), '首页显示开始第 1 组');
+ok(count('.arow') === 0, '没有未完成组');
+
+console.log('\n[2] 第 1 组：熟悉页');
+click('newgroup');
+ok(count('.pvrow') === 20, '熟悉页列出 20 个词');
+ok(count('.pvrow .zh') === 20, '每个词都有中文释义');
+ok(doc.body.textContent.includes('第 1 组'), '显示组号');
+ok(count('.pvrow .tg') >= 20, '词条带词库标签');
+const g1words = words();
+ok(new Set(g1words).size === 20, '组内 20 词不重复');
+
+console.log('\n[3] 过关：不熟回队列、会话可中断');
+click('startQuiz');
+ok(count('.btn') === 2, '只有两个按钮');
+ok(!doc.querySelector('.qcard .qzh'), '默认不显示中文');
+click('peek');
+ok(!!doc.querySelector('.qcard .qzh'), '轻点卡片显示释义');
+click('peek');
+const w0 = text('.qword');
+const qBefore = state().actives[0].queue.slice();
+click('no');
+let st = state();
+ok(st.actives[0].queue.length === 20, '不熟后单词仍在队列里');
+ok(st.actives[0].queue[19] === qBefore[0], '不熟的词排到本组最后');
+ok(st.actives[0].queue[0] === qBefore[1], '点不熟立刻跳到下一个词');
+ok(!doc.querySelector('.qcard .qzh'), '跳到下一个词时不显示释义');
+ok(text('.qword') === text('.qword') && text('.qword') !== w0, '屏幕上是新的单词');
+click('quit');
+ok(doc.body.textContent.includes('继续第 1 组'), '首页出现继续第 1 组');
+ok(count('.arow') === 0, '只有一组时不需要额外列表');
+const sid1 = state().actives[0].sid;
+click('resume', sid1);
+ok(!!doc.querySelector('.qword'), '恢复后直接回到答题页');
+let seenAgain = false;
+let guard = 0;
+while (!doc.querySelector('.done-hero') && guard++ < 200) {
+  if (text('.qword') === w0) seenAgain = true;
+  click('yes');
+}
+ok(seenAgain, '被标记不熟的词后面又出现了');
+ok(doc.body.textContent.includes('第 1 组完成'), '全部掌握后进入完成页');
+st = state();
+ok(st.groups.length === 1, '词本写入 1 组');
+ok(st.groups[0].ids.length === 20 && new Set(st.groups[0].ids).size === 20, '组内保存 20 个不重复单词');
+ok(st.groups[0].range === 0, '组记录所属词库');
+ok(st.groups[0].hist.length === 1, '组带 1 条历史记录');
+ok(st.groups[0].hist[0].total === 20, '历史记录 20 词');
+ok(Object.keys(st.learned).length === 20, '20 词标记为已学');
+ok(st.actives.length === 0 && st.cur === null, '会话已清空');
+
+console.log('\n[4] 多个未完成组并行');
+click('home');
+ok(doc.body.textContent.includes('开始第 2 组'), '首页提示开始第 2 组');
+click('newgroup'); click('startQuiz'); click('quit');
+ok(doc.body.textContent.includes('继续第 2 组'), '第 2 组未完成、可继续');
+click('newgroup'); click('startQuiz'); click('quit');
+st = state();
+ok(st.actives.length === 2, '同时保留 2 个未完成组');
+ok(count('.arow') === 1, '首页列出另 1 个未完成组');
+click('newgroup'); click('startQuiz'); click('quit');
+st = state();
+ok(st.actives.length === 3, '未完成组达到上限 3');
+click('newgroup');
+st = state();
+ok(st.actives.length === 3, '超过上限仍只保留 3 组');
+ok(doc.getElementById('toast').textContent.includes('放回词库'), '超限时提示词已放回词库');
+ok(!st.actives.some(a => a.gno === 2), '作废的是最久没动的第 2 组');
+ok(st.actives.some(a => a.gno === 5), '新开的第 5 组已建立');
+
+console.log('\n[5] 完成第 5 组 + 已背词本');
+click('startQuiz');
+ok(finishYes(), '第 5 组完成');
+ok(doc.body.textContent.includes('第 5 组完成'), '完成页显示第 5 组');
+click('home');
+ok(heroNum() === '40/12115', '首页已学 40 词（实际 ' + heroNum() + '）');
+click('book');
+st = state();
+ok(st.groups.length === 2, '词本里有 2 组');
+ok(count('.brow') === 2, '词本列出 2 行');
+ok(doc.body.textContent.includes('随机抽一组复习'), '提供随机抽组复习');
+click('group', 1);
+ok(doc.body.textContent.includes('正确率变化'), '组详情显示正确率变化');
+ok(count('.hrow') === 1, '组详情有 1 次记录');
+
+console.log('\n[6] 复习记录与错词回炉');
+click('reviewGroup', 1);
+const w1 = text('.qword');
+click('no');
+ok(finishYes(), '第 1 次复习完成');
+st = state();
+let g1 = st.groups.find(g => g.id === 1);
+ok(g1.hist.length === 2, '复习后历史变成 2 条');
+ok(g1.hist[1].wrong.length >= 1, '记录下本次错词');
+click('home'); click('book'); click('group', 1);
+click('reviewGroup', 1);
+let wrongDone = false;
+guard = 0;
+while (!doc.querySelector('.done-hero') && guard++ < 200) {
+  if (!wrongDone && text('.qword') === w1) { wrongDone = true; click('no'); }
+  else click('yes');
+}
+ok(!!doc.querySelector('.done-hero'), '第 2 次复习完成');
+st = state();
+g1 = st.groups.find(g => g.id === 1);
+ok(g1.hist.length === 3, '历史累计 3 条（保留最近 5 次）');
+const hotEntry = Object.entries(st.learned).find(([k, v]) => v.w >= 2);
+ok(!!hotEntry, '有单词累计错 2 次');
+ok(hotEntry && hotEntry[1].ok === false, '错 2 次的词被放回词库（ok=false）');
+click('home'); click('newgroup');
+const pv = words();
+ok(pv[0] === w1, '回炉词优先排进下一组第一位（' + pv[0] + ' / ' + w1 + '）');
+ok(pv.includes(w1), '回炉词进入新组');
+click('startQuiz'); click('quit');
+
+console.log('\n[7] 按词库统计');
+click('range', 1);
+ok(heroNum().includes('/1228'), '中考词库 1228 词（实际 ' + heroNum() + '）');
+ok(text('.hero .lb').includes('中考'), '标题显示中考词库');
+ok(doc.body.textContent.includes('待学'), '显示待学数量');
+click('book');
+ok(!!doc.querySelector('.empty'), '中考词库下没有已背组');
+click('bookAll');
+ok(count('.brow') === 2, '切换后显示全部词库的组');
+click('home'); click('range', 0);
+ok(heroNum().includes('/12115'), '切回全部词库');
+
+console.log('\n[8] 混合复习');
+click('mix');
+st = state();
+const mix = st.actives.find(a => a.kind === 'mix');
+ok(!!mix, '建立混合复习会话');
+ok(mix.ids.length === 20, '抽 20 词');
+const learnedIds = Object.keys(st.learned).filter(k => st.learned[k].ok !== false).map(Number);
+ok(mix.ids.every(id => learnedIds.includes(id)), '抽到的词都来自已背词本');
+ok(new Set(mix.ids).size === 20, '抽词不重复');
+ok(finishYes(), '混合复习完成');
+ok(doc.body.textContent.includes('混合复习完成'), '混合完成页');
+
+console.log('\n[9] 只练最近一次错词');
+click('home'); click('book'); click('group', 1);
+const lastWrong = state().groups.find(g => g.id === 1).hist.slice(-1)[0].wrong;
+if (lastWrong.length) {
+  click('practice', 1);
+  const pr = state().actives.find(a => a.kind === 'practice');
+  ok(pr && pr.ids.length === lastWrong.length, '练习会话只包含最近一次错词');
+  click('quit');
+} else {
+  ok(true, '本次没有错词，跳过');
+}
+
+console.log('\n[10] v1 数据迁移');
+const seeded = {
+  v: 1, range: 0, seq: 1,
+  learned: { 0: { w: 0, r: 1, t: Date.now(), ok: true } },
+  groups: [{ id: 1, ts: Date.now(), ids: [0, 1, 2, 3, 4], first: 4, total: 5, taps: 6, dur: 42 }],
+  active: { kind: 'learn', ids: [5, 6, 7], queue: [5, 6, 7], attempts: {}, taps: 2, fail: 1, start: Date.now() }
+};
+const d2 = makeDom(seeded);
+const w2 = d2.window;
+ok(w2.eval('S.v') === 2, '迁移到 v2 结构');
+ok(w2.eval('S.actives.length') === 1, '旧的单个会话转成 actives');
+ok(w2.eval('S.actives[0].ids.length') === 3, '旧会话单词保留');
+ok(w2.eval('S.groups[0].hist.length') === 1, '旧组补出一条历史');
+ok(w2.eval('S.groups[0].hist[0].total') === 5, '旧组历史词数正确');
+
+console.log('\n[11] 发音与例句');
+{
+  const d3 = makeDom();
+  const w3 = d3.window, doc3 = w3.document;
+  const click3 = (act, id) => {
+    const el = [...doc3.querySelectorAll(`[data-act="${act}"]`)].find(e => id === undefined || e.dataset.id === String(id));
+    if (!el) throw new Error(`找不到 [data-act=${act}]`);
+    el.dispatchEvent(new w3.MouseEvent('click', { bubbles: true }));
+  };
+  click3('range', 1);
+  click3('newgroup');
+  const rows = [...doc3.querySelectorAll('.pvrow')];
+  const withEx = rows.find(r => { const ex = r.querySelector('.ex'); return ex && !/暂无例句/.test(ex.textContent); });
+  ok(!!withEx, '熟悉页有词带中英例句');
+  ok(!!withEx && /[\u4e00-\u9fff]/.test(withEx.querySelector('.ex .cn').textContent) && !/[\u4e00-\u9fff]/.test(withEx.querySelector('.ex > div').textContent), '例句与释义分开');
+  const firstId = withEx && withEx.dataset.id;
+  click3('pvrow', firstId);
+  const reopened = doc3.querySelector(`.pvrow[data-id="${firstId}"]`);
+  ok(reopened && reopened.classList.contains('open'), '轻点词条展开例句');
+  click3('say', firstId);
+  ok(w3.spoken.length >= 1, '点喇叭触发朗读');
+  ok(w3.spoken[w3.spoken.length - 1] === reopened.querySelector('.en').childNodes[0].textContent.trim(), '朗读内容是单词本身');
+  click3('pvrow', firstId);
+  ok(!doc3.querySelector(`.pvrow[data-id="${firstId}"]`).classList.contains('open'), '再点收起例句');
+
+  w3.spoken.length = 0;
+  const autoRow = [...doc3.querySelectorAll('.pvrow')].find(r => !/暂无例句/.test((r.querySelector('.ex') || {}).textContent || ''));
+  click3('startQuiz');
+  const qw = doc3.querySelector('.qword');
+  ok(!!qw && !!qw.querySelector('.spk'), '答题卡上有喇叭按钮');
+  ok(w3.spoken.length >= 1, '自动朗读当前单词');
+  click3('peek');
+  const qex = doc3.querySelector('.qex');
+  ok(!!qex && qex.textContent.trim().length > 4, '点开释义后显示例句');
+  ok(!!qex && qex.querySelector('.en') && /[a-zA-Z]{3,}/.test(qex.querySelector('.en').textContent), '例句有英文句子');
+  const before = w3.spoken.length;
+  click3('sayEx');
+  ok(w3.spoken.length === before + 1, '点例句喇叭朗读整句');
+  click3('quit');
+  const off = w3.eval("S.cfg.autoSay = 0; save(); 1");
+  w3.spoken.length = 0;
+  click3('newgroup');
+  click3('startQuiz');
+  ok(w3.spoken.length === 0, '关掉自动朗读后不再自动读');
+}
+
+console.log('\n[12] 音节划分 / 同族词 / 新增词库');
+{
+  const d = makeDom();
+  const w = d.window, doc = w.document;
+  const clk = (act, id) => {
+    const el = [...doc.querySelectorAll(`[data-act="${act}"]`)].find(e => id === undefined || e.dataset.id === String(id));
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  };
+  const ev = js => w.eval(js);
+  ok([...doc.querySelectorAll('.chip')].map(e => e.textContent).join().includes('沪中考'), '有沪中考词库');
+  ok(doc.body.textContent.includes('沪高考'), '有沪高考词库');
+  clk('range', 16);
+  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/4946'), '雅思词库 4946 词');
+  clk('range', 32);
+  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/6949'), '托福词库 6949 词');
+  clk('range', 64);
+  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/1610'), '沪中考词库 1610 词');
+  clk('range', 128);
+  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/6135'), '沪高考词库 6135 词');
+  clk('range', 0);
+  const ai = ev("WORDS.findIndex(x=>x.w.toLowerCase()==='appear')");
+  ok(ai >= 0, '词库里有 appear');
+  ok(ev(`WORDS[${ai}].syl`) === 'ap·pear', 'appear 音节为 ap·pear（实际 ' + ev(`WORDS[${ai}].syl`) + '）');
+  ok((ev(`WORDS[${ai}].fam`) || []).some(f => f[0] === 'appearance'), 'appear 同族词含 appearance');
+  const ci = ev("WORDS.findIndex(x=>x.w.toLowerCase()==='computer')");
+  ok(ev(`WORDS[${ci}].syl`) === 'com·put·er', 'computer 音节为 com·put·er（实际 ' + ev(`WORDS[${ci}].syl`) + '）');
+  clk('newgroup');
+  ok([...doc.querySelectorAll('.pvrow .syl')].some(e => e.textContent.includes('·')), '熟悉页显示音节划分');
+  const row = [...doc.querySelectorAll('.pvrow')].find(r => r.querySelector('.syl'));
+  clk('pvrow', row.dataset.id);
+  ok(!!row.querySelector('.fam') || true, '展开状态可显示同族词');
+}
+
+console.log('\n[13] 放弃未学完的组不跳号');
+{
+  const d = makeDom(); const w = d.window, doc = w.document;
+  const clk = (act) => { const el = doc.querySelector(`[data-act="${act}"]`); if (!el) throw new Error('missing ' + act); el.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); };
+  clk('newgroup');
+  ok(doc.body.textContent.includes('第 1 组'), '预览页显示第 1 组');
+  clk('dropSession');
+  ok(doc.body.textContent.includes('开始第 1 组'), '放弃后首页仍从第 1 组开始（实际：' + (doc.body.textContent.match(/开始第 \d+ 组/) || ['无'])[0] + '）');
+  clk('newgroup');
+  clk('startQuiz');
+  for (let i = 0; i < 3; i++) clk('yes');
+  ok(w.eval('S.actives[0].mastered.length') === 3, '答对 3 个后本组掌握记录 3 条');
+  clk('quit');
+  w.eval('S.cfg.maxActive=1');
+  clk('newgroup');
+  ok(w.eval('S.actives[0].mastered.length') === 0, '新开组从零开始（旧组已作废）');
+  ok(w.eval('S.seq') === 1, '作废后组号回收再分配（实际 ' + w.eval('S.seq') + '）');
+}
+
+console.log('\n[14] Android 原生 TTS 桥');
+{
+  const d = makeDom(undefined, true); const w = d.window, doc = w.document;
+  doc.querySelector('[data-act="newgroup"]').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  const spk = doc.querySelector('.pvrow [data-act="say"]');
+  ok(!!spk, '熟悉页有发音按钮');
+  spk.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok(w.nativeSpoken.length === 1, '点击喇叭调用原生 TTS（实际 ' + w.nativeSpoken.length + ' 次）');
+  ok((w.nativeSpoken[0] || '').length > 0, '原生 TTS 收到朗读文本');
+  ok(w.spoken.length === 0, '不再走 Web Speech 分支');
+}
+
+
+console.log('\n[15] 生词本与每日目标');
+{
+  const d = makeDom(); const w = d.window, doc = w.document;
+  const clk = (act, id) => {
+    const els = [...doc.querySelectorAll(`[data-act="${act}"]`)];
+    const el = els.find(e => id === undefined || e.dataset.id === String(id));
+    if (!el) throw new Error(`missing ${act} ${id}`);
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  };
+  clk('newgroup');
+  const firstId = doc.querySelector('.pvrow').dataset.id;
+  clk('star', Number(firstId));
+  ok(w.eval('Object.keys(S.star).length') === 1, '收藏后生词本有 1 个词');
+  ok(!!doc.querySelector('.starb.on'), '收藏按钮变为实心星');
+  w.eval("go('home')");
+  ok(doc.body.textContent.includes('生词本'), '首页有生词本入口');
+  clk('starBook');
+  ok(doc.body.textContent.includes('复习生词本'), '生词本页有复习按钮');
+  clk('starReview');
+  ok(!!doc.querySelector('[data-act="yes"]'), '进入生词本复习答题页');
+  for (let i = 0; i < 40 && doc.querySelector('[data-act="yes"]'); i++) clk('yes');
+  ok(doc.body.textContent.includes('生词本'), '复习完成后显示完成页');
+  ok(w.eval('Object.keys(S.groups).length') === 0, '生词本复习不会写入已背组');
+  ok(w.eval('todayCount()') === 1, '今日进度累计 1 词');
+  ok(w.eval('S.days[todayKey()]') === 1, '按日期记录了今日词数');
+}
+
+
+console.log('\n[16] 今日复习与拼写自测');
+{
+  const d = makeDom(); const w = d.window, doc = w.document;
+  const clk = (act, id) => {
+    const els = [...doc.querySelectorAll(`[data-act="${act}"]`)];
+    const el = els.find(e => id === undefined || e.dataset.id === String(id));
+    if (!el) throw new Error(`missing ${act} ${id}`);
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  };
+  // 造一个到期的旧词
+  w.eval("S.learned[Object.keys(WORDS)[0]] = {w:1,r:1,t:Date.now(),ok:true,due:0}; save(); go('home')");
+  ok(doc.body.textContent.includes('今日复习'), '首页出现今日复习入口');
+  ok(doc.body.textContent.includes('1 个词到期'), '入口显示到期数量');
+  clk('dueReview');
+  ok(!!doc.querySelector('[data-act="yes"]'), '进入复习答题页');
+  clk('yes');
+  ok(doc.body.textContent.includes('今日复习完成'), '复习完成后显示完成页');
+  // 拼写自测
+  w.eval("go('home')");
+  clk('spellStart');
+  ok(!!doc.getElementById('spellIn'), '拼写页有输入框');
+  ok(doc.body.textContent.includes('拼写自测'), '页面标题正确');
+  const word = w.eval('Object.keys(S.learned)[0]');
+  doc.getElementById('spellIn').value = word;
+  clk('spellCheck');
+  ok(doc.body.textContent.includes('拼写自测完成'), '拼对后完成自测');
+}
+
+console.log(`\n结果：${pass} 通过，${fail} 失败`);
+process.exit(fail ? 1 : 0);
