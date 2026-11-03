@@ -163,18 +163,25 @@ async function aiReport(student, summary) {
 }
 
 /* ---------------- 静态文件 ---------------- */
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.apk': 'application/vnd.android.package-archive', '.txt': 'text/plain; charset=utf-8' };
-function serveFile(res, file, download) {
+const MIME = {
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
+  '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
+  '.apk': 'application/vnd.android.package-archive', '.txt': 'text/plain; charset=utf-8'
+};
+function serveFile(res, file, download, cache) {
   fs.readFile(file, (err, buf) => {
-    if (err) { res.writeHead(404); res.end('not found'); return; }
-    const h = { 'content-type': MIME[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-cache' };
+    if (err) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end('not found'); return; }
+    const h = { 'content-type': MIME[path.extname(file)] || 'application/octet-stream', 'cache-control': cache || 'no-cache' };
+    if (path.basename(file) === 'manifest.json') h['content-type'] = 'application/manifest+json; charset=utf-8';
     if (download) h['content-disposition'] = 'attachment; filename="' + path.basename(file) + '"';
     res.writeHead(200, h); res.end(buf);
   });
 }
 
 /* ---------------- 路由 ---------------- */
-const server = http.createServer(async (req, res) => {
+const handler = async (req, res) => {
   res.setHeader('access-control-allow-origin', '*');
   res.setHeader('access-control-allow-headers', 'content-type, authorization');
   res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
@@ -185,17 +192,22 @@ const server = http.createServer(async (req, res) => {
 
   try {
     /* ---------- 页面 ---------- */
-    if (p === '/' ) { res.writeHead(302, { location: '/student.html' }); res.end(); return; }
+    if (p === '/' ) { res.writeHead(302, { location: '/vocab.html' }); res.end(); return; }
     if (p === '/admin' || p === '/admin.html') return serveFile(res, path.join(ROOT, 'admin.html'));
-    if (p === '/student.html' || p === '/vocab.html') return serveFile(res, path.join(PUBLIC, 'vocab.html'));
-    if (p === '/manifest.json') return serveFile(res, path.join(PUBLIC, 'manifest.json'));
-    if (p === '/sw.js') { res.setHeader('service-worker-allowed', '/'); return serveFile(res, path.join(PUBLIC, 'sw.js')); }
+    if (p === '/student.html' || p === '/vocab.html' || p === '/index.html') return serveFile(res, path.join(PUBLIC, 'vocab.html'));
+    if (p === '/manifest.json' || p === '/manifest.webmanifest') return serveFile(res, path.join(PUBLIC, 'manifest.json'));
+    if (p === '/sw.js') {
+      res.setHeader('service-worker-allowed', '/');
+      return serveFile(res, path.join(PUBLIC, 'sw.js'), false, 'no-store');
+    }
+    if (p === '/favicon.ico' || p === '/favicon.png') return serveFile(res, path.join(PUBLIC, 'icons/favicon-32.png'));
+    if (p === '/apple-touch-icon.png' || p === '/apple-touch-icon-precomposed.png') return serveFile(res, path.join(PUBLIC, 'icons/apple-touch-icon.png'));
     if (p.startsWith('/icons/') && !p.includes('..')) return serveFile(res, path.join(PUBLIC, p.slice(1)));
     if (p.startsWith('/apk/')) return serveFile(res, path.join(ROOT, 'apk', p.slice(5)), true);
     if (p.startsWith('/static/')) return serveFile(res, path.join(PUBLIC, p.slice(8)));
     if (p === '/api/health') {
       res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ ok: true, ts: Date.now(), students: db.students.length }));
+      res.end(JSON.stringify({ ok: true, ts: Date.now(), students: Object.keys(DB.students).length }));
       return;
     }
 
@@ -376,12 +388,25 @@ const server = http.createServer(async (req, res) => {
     if (res.headersSent) { try { res.end(); } catch (_) {} return; }
     return bad(res, 500, '服务器错误');
   }
-});
+};
+
+/* ---------------- 启动（可选 HTTPS，装了证书才开） ---------------- */
+const TLS_KEY = process.env.TLS_KEY || '';
+const TLS_CERT = process.env.TLS_CERT || '';
+const USE_TLS = !!(TLS_KEY && TLS_CERT);
+const SCHEME = USE_TLS ? 'https' : 'http';
+const server = USE_TLS
+  ? require('https').createServer({ key: fs.readFileSync(TLS_KEY), cert: fs.readFileSync(TLS_CERT) }, handler)
+  : http.createServer(handler);
 
 server.listen(PORT, HOST, () => {
-  console.log(`单词本服务器已启动： http://${HOST}:${PORT}`);
-  console.log(`  学生端： http://<本机IP>:${PORT}/student.html`);
-  console.log(`  老师端： http://<本机IP>:${PORT}/admin`);
+  console.log(`单词本服务器已启动： ${SCHEME}://${HOST}:${PORT}`);
+  console.log(`  学生端： ${SCHEME}://<本机IP>:${PORT}/vocab.html`);
+  console.log(`  老师端： ${SCHEME}://<本机IP>:${PORT}/admin`);
+  if (!USE_TLS) {
+    console.log('  提示：浏览器只在 HTTPS 或 localhost 下允许「添加到主屏幕」；');
+    console.log('       局域网/公网部署请配 HTTPS（TLS_CERT/TLS_KEY，或前置 Caddy/Nginx）。');
+  }
   if (DB.teacher.initPass) console.log(`  初始老师账号： ${DB.teacher.user} / ${DB.teacher.initPass}  （请登录后尽快改密码）`);
   console.log(`  数据文件： ${DB_FILE}`);
 });

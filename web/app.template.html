@@ -3,27 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#eef1f6">
+<meta name="theme-color" content="#f4efe4">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0e1117">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="词书">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <title>词书 · 背单词</title>
+<script>
+/* 尽早应用主题，避免页面闪白 */
+try{
+  var _st=JSON.parse(localStorage.getItem('wordbook.v1')||'{}');
+  var _p=(_st.cfg&&_st.cfg.theme)||'auto';
+  var _d=_p==='dark'||(_p==='auto'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme=_d?'dark':'light';
+  document.documentElement.style.colorScheme=_d?'dark':'light';
+}catch(e){}
+</script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%}
-body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;overscroll-behavior:none}
 :root{
-  --bg:#eef1f6;--card:#fff;--ink:#0d1526;--sub:#6b7688;--line:#e3e8f0;
-  --accent:#3b5bfd;--ok:#0ea371;--bad:#e0455f;
-  --shadow:0 12px 32px -14px rgba(13,21,38,.28);
+  --serif:"Times New Roman","Songti SC","STSong","SimSun","Noto Serif CJK SC","Noto Serif SC","Source Han Serif SC","Liberation Serif",Georgia,serif;
+  --bg:#f4efe4;--card:#fffdf7;--ink:#211c15;--sub:#746b5c;--line:#e3dac8;
+  --accent:#2d4a74;--accent-2:#8a6a3f;--ok:#2d7a58;--bad:#b03a45;--gold:#c08a2e;
+  --cta1:#2b4770;--cta2:#4d6f9e;--chip:#f0e9db;
+  --shadow:0 18px 38px -22px rgba(60,45,25,.4);
 }
-@media (prefers-color-scheme:dark){
-  :root{--bg:#0a0e15;--card:#151b26;--ink:#e9eef7;--sub:#8b98ab;--line:#242e3e;
-  --shadow:0 12px 32px -14px rgba(0,0,0,.75)}
+html[data-theme=dark]{
+  --bg:#0e1117;--card:#161b23;--ink:#ece6d8;--sub:#9a958a;--line:#29303c;
+  --accent:#9fb4d9;--accent-2:#d3b483;--ok:#63c79a;--bad:#e77e8a;--gold:#e8be66;
+  --cta1:#3b5a8c;--cta2:#5d7fae;--chip:#1d232d;
+  --shadow:0 20px 44px -24px #000;
 }
+body{background:var(--bg);color:var(--ink);font-family:var(--serif);overscroll-behavior:none;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
 .app{max-width:520px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;
   padding:calc(env(safe-area-inset-top,0px) + 16px) 18px calc(env(safe-area-inset-bottom,0px) + 18px)}
@@ -176,6 +194,226 @@ h1{font-size:30px;margin:4px 0 0;letter-spacing:-.02em;font-weight:800}
 .syncbar b{color:var(--accent)}
 .syncbar.dirty b{color:var(--bad)}
 .syncbar.dirty{color:var(--ink)}
+
+/* ===== v2：纸感 · 宋体 · 暗夜 ===== */
+body{background:
+  radial-gradient(900px 460px at 85% -8%,color-mix(in srgb,var(--accent) 7%,transparent),transparent 62%),
+  radial-gradient(700px 380px at -10% 12%,color-mix(in srgb,var(--gold) 6%,transparent),transparent 60%),
+  var(--bg);
+  background-attachment:fixed}
+.app{max-width:540px;padding:calc(env(safe-area-inset-top,0px) + 18px) 18px calc(env(safe-area-inset-bottom,0px) + 20px)}
+.hd{align-items:center;margin-bottom:16px}
+.eyebrow{font-size:10px;letter-spacing:.24em;color:var(--sub);font-weight:600}
+h1{font-size:34px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+.hd-tools{display:flex;gap:8px;align-items:center}
+.icon{width:40px;height:40px;border-radius:13px;background:color-mix(in srgb,var(--card) 92%,transparent);
+  border:1px solid color-mix(in srgb,var(--line) 75%,transparent);box-shadow:var(--shadow);font-size:17px;color:var(--sub)}
+.icon:active{transform:scale(.94)}
+.card{background:var(--card);border:1px solid color-mix(in srgb,var(--line) 62%,transparent);
+  border-radius:20px;box-shadow:var(--shadow);padding:18px}
+.hero{padding:20px 20px 16px;margin-bottom:10px}
+.hero .num{font-size:44px;font-weight:700;letter-spacing:-.035em;font-variant-numeric:tabular-nums;line-height:1}
+.hero .num small{font-size:14px;color:var(--sub);font-weight:500;letter-spacing:0}
+.hero .lb{font-size:12.5px;color:var(--sub);margin-top:5px}
+.hero .sub{font-size:11.5px;color:var(--sub);margin-top:7px;letter-spacing:.01em}
+.hero .sub.streak{margin-top:8px}
+.bar{height:5px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:12px}
+.bar i{background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#9db7dd))}
+.chips{padding:13px 0 11px;gap:7px}
+.chip{padding:8px 14px;border-radius:99px;font-size:12.5px;font-weight:600;background:transparent;
+  border:1px solid color-mix(in srgb,var(--line) 85%,transparent);color:var(--sub)}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink);box-shadow:0 8px 18px -10px color-mix(in srgb,var(--ink) 55%,transparent)}
+.cta{min-height:58px;border-radius:18px;background:linear-gradient(135deg,var(--cta1),var(--cta2));
+  box-shadow:0 16px 30px -18px color-mix(in srgb,var(--cta1) 80%,transparent);font-weight:600;letter-spacing:.01em}
+.cta small{font-weight:500;opacity:.8}
+.cta.ghost{background:color-mix(in srgb,var(--card) 80%,transparent);border:1px solid var(--line);box-shadow:none;
+  color:var(--ink);min-height:50px;font-size:14px}
+.cta.done{background:color-mix(in srgb,var(--card) 70%,transparent);border:1px dashed var(--line);color:var(--sub)}
+.grid2{gap:9px;margin-top:11px}
+.mini{padding:15px;border-radius:17px;background:color-mix(in srgb,var(--card) 92%,transparent)}
+.mini .em{font-size:17px;filter:saturate(.85)}
+.mini b{font-size:13.5px;font-weight:650}
+.mini span{font-size:11.5px;color:var(--sub);line-height:1.4}
+.note{font-size:10.5px;letter-spacing:.02em;opacity:.65}
+.topbar{height:38px;margin-bottom:13px;gap:10px}
+.topbar .ttl{font-size:13px;font-weight:600;letter-spacing:.01em}
+.topbar .ttl span{font-size:11px;color:var(--sub)}
+.tbtn{border-radius:11px;border:1px solid color-mix(in srgb,var(--line) 70%,transparent);box-shadow:none}
+.pvlist{gap:8px;padding-bottom:12px}
+.pvrow{border-radius:15px;padding:12px 13px;border:1px solid color-mix(in srgb,var(--line) 50%,transparent);
+  transition:border-color .15s,background .15s}
+.pvrow.open{border-color:color-mix(in srgb,var(--accent) 32%,var(--line));background:color-mix(in srgb,var(--card) 96%,var(--accent))}
+.pvrow .ix{font-size:10px;width:16px;padding-top:4px;font-variant-numeric:tabular-nums}
+.pvrow .en{font-size:18px;font-weight:700;letter-spacing:-.015em;line-height:1.25}
+.pvrow .ph{font-size:11.5px;font-weight:400;color:var(--sub);margin-left:6px}
+.pvrow .zh{font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.5}
+.pvrow .more{margin-top:6px;font-size:10.5px;letter-spacing:.02em;color:var(--accent);font-weight:600}
+.pvrow .ex{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);font-size:12px;line-height:1.6}
+.pvrow .ex .cn{opacity:.82}
+.pvrow .tags{margin-top:7px;gap:5px}
+.spk{width:27px;height:27px;background:color-mix(in srgb,var(--accent) 9%,transparent);color:var(--accent);font-size:12px}
+.syl{font-size:11.5px;letter-spacing:.05em;margin-top:3px}
+.qwrap{align-items:flex-start;padding:4px 0 12px}
+.qcard{min-height:330px;max-height:calc(100dvh - 218px);overflow-y:auto;border-radius:24px;justify-content:flex-start;
+  padding:34px 22px;gap:7px;border:1px solid color-mix(in srgb,var(--line) 55%,transparent);
+  box-shadow:var(--shadow);animation:pop .2s ease}
+.qword{font-size:clamp(34px,10vw,44px);font-weight:700;letter-spacing:-.025em}
+.qph{font-size:14px;color:var(--sub);margin-top:1px}
+.qzh{font-size:15px;line-height:1.55;margin-top:10px;max-width:100%;text-align:left;width:100%}
+.qhint{font-size:11px;letter-spacing:.04em;margin-top:18px}
+.qfam{margin-top:8px;font-size:12.5px;line-height:1.7;text-align:left;width:100%}
+.qex{margin-top:12px;padding-top:11px}
+.qex .en{font-size:13.5px;line-height:1.55}
+.qex .cn{font-size:12.5px;margin-top:4px}
+.qdef{font-size:12px;color:var(--sub);line-height:1.5;text-align:left;width:100%;margin-top:5px;font-style:italic}
+.qmore{margin-top:12px;font-size:11px;color:var(--accent);font-weight:600;letter-spacing:.02em}
+.qbtns{gap:10px}
+.btn{height:58px;border-radius:17px;font-size:16px;font-weight:600}
+.btn.ok{background:linear-gradient(135deg,color-mix(in srgb,var(--ok) 88%,#000),var(--ok));box-shadow:0 14px 24px -16px var(--ok)}
+.btn.bad{border:1.4px solid color-mix(in srgb,var(--bad) 70%,var(--line));color:var(--bad);background:transparent}
+.spell input{height:56px;border-radius:15px;border:1.4px solid var(--line);background:var(--card);color:var(--ink);
+  font-size:20px;letter-spacing:.04em;font-family:var(--serif)}
+.spell input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+.spell .qzh{font-size:19px;text-align:center}
+.spell .qcard{justify-content:center;min-height:150px}
+.done-hero{padding:30px 0 20px;gap:5px}
+.done-hero .em{font-size:46px;filter:drop-shadow(0 6px 12px color-mix(in srgb,var(--gold) 30%,transparent))}
+.done-hero .t{font-size:21px;font-weight:700}
+.done-hero .s{font-size:12.5px;color:var(--sub)}
+.stats{gap:9px;margin:6px 0 14px}
+.stat{border-radius:15px;padding:14px 8px;border:1px solid color-mix(in srgb,var(--line) 50%,transparent);box-shadow:none}
+.stat b{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat span{font-size:10.5px;color:var(--sub)}
+.blist{gap:7px}
+.brow{border-radius:14px;padding:12px 13px;border:1px solid color-mix(in srgb,var(--line) 48%,transparent)}
+.brow .n{font-size:13px;font-weight:700;width:auto;min-width:44px}
+.brow .info{font-size:11.5px;line-height:1.5}
+.arow{border-radius:14px;padding:11px 13px;border:1px solid color-mix(in srgb,var(--line) 48%,transparent)}
+.hrow{border-radius:13px;border:1px solid color-mix(in srgb,var(--line) 48%,transparent)}
+.wtag{border-radius:6px;font-size:11px;padding:2px 6px}
+.sheet-bg{background:rgba(18,14,8,.46);backdrop-filter:blur(4px)}
+.sheet{border-radius:24px 24px 0 0;padding:22px 18px calc(env(safe-area-inset-bottom,0px) + 22px);
+  border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent);position:relative}
+.sheet h3{font-size:16px;font-weight:700;letter-spacing:.01em;margin-bottom:14px}
+.sheet .s-btn{border-radius:13px;font-size:14px;font-weight:600;background:color-mix(in srgb,var(--bg) 78%,var(--card))}
+.srow{font-size:12.5px;margin-bottom:11px}
+.sbtn{border-radius:9px;font-size:12px;height:33px;background:color-mix(in srgb,var(--bg) 72%,var(--card))}
+.sbtn.on{background:var(--ink);color:var(--bg)}
+.s-in{height:43px;border-radius:11px;background:color-mix(in srgb,var(--bg) 60%,var(--card));color:var(--ink)}
+.tgline{font-size:11.5px;color:var(--sub);letter-spacing:.01em}
+.syncbar{border-radius:14px;box-shadow:none;border:1px solid color-mix(in srgb,var(--line) 45%,transparent)}
+.toast{border-radius:11px;font-family:var(--serif);letter-spacing:.02em;background:color-mix(in srgb,var(--ink) 92%,transparent);color:var(--bg)}
+
+/* 最近 7 天 */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:14px;align-items:end}
+.week .wd{text-align:center}
+.week .wd i{display:block;height:30px;display:flex;align-items:flex-end;justify-content:center}
+.week .wd i b{display:block;width:9px;min-height:3px;border-radius:4px 4px 2px 2px;
+  background:color-mix(in srgb,var(--line) 85%,var(--sub));transition:height .3s}
+.week .wd.today i b{background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#9db7dd))}
+.week .wd span{display:block;font-size:9px;color:var(--sub);margin-top:4px;letter-spacing:0}
+.week .wd.today span{color:var(--accent);font-weight:700}
+.reward{display:flex;align-items:center;justify-content:center;gap:7px;font-size:11.5px;color:var(--gold);
+  margin:2px 0 12px;letter-spacing:.02em}
+
+/* 义项 */
+.senses{display:flex;flex-direction:column;gap:5px;text-align:left;width:100%;margin-top:7px}
+.sen{display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.sen .pos{flex:0 0 auto;min-width:32px;padding:1px 6px;border-radius:5px;text-align:center;
+  font-size:10px;font-weight:700;letter-spacing:.01em;color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 9%,transparent);border:1px solid color-mix(in srgb,var(--accent) 16%,transparent)}
+.sen .mean{font-size:13px;color:var(--ink);opacity:.9;line-height:1.55;word-break:break-word}
+.sen .mean em{font-style:normal}
+.sen .mean .semi{color:var(--sub);margin:0 1px}
+.zh .senses{gap:3px;margin-top:0}
+.zh .sen{gap:6px;line-height:1.45}
+.zh .sen .pos{font-size:9px;min-width:28px;padding:0 4px;background:transparent;border:0;color:var(--accent);opacity:.9}
+.zh .sen .mean{font-size:12px;color:var(--sub);opacity:1}
+.sep{color:var(--line);margin:0 2px}
+
+/* 同族词 / 近反义 / 词形 */
+.famline{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
+.famlb{font-size:10px;color:var(--sub);letter-spacing:.08em;margin-right:1px}
+.famhint{font-size:10px;color:var(--sub);opacity:.65;margin-top:5px}
+.chips-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.famw{display:inline-flex;align-items:baseline;gap:5px;padding:5px 9px;border-radius:8px;
+  background:color-mix(in srgb,var(--accent) 6%,transparent);border:1px solid color-mix(in srgb,var(--line) 65%,transparent);
+  color:var(--ink);font-size:12.5px;line-height:1.2;transition:background .15s}
+.famw:active{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.famw .fw{font-weight:600;letter-spacing:.01em}
+.famw .pos{font-size:9px;color:var(--accent);font-weight:700}
+.famw.sm{font-size:11.5px;padding:3px 7px}
+.rel{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:7px;font-size:12px;
+  background:color-mix(in srgb,var(--line) 35%,transparent);border:1px solid transparent;color:var(--ink)}
+.rel.ant{color:var(--bad);background:color-mix(in srgb,var(--bad) 7%,transparent)}
+.form{display:inline-flex;align-items:baseline;gap:5px;padding:4px 8px;border-radius:7px;font-size:12px;
+  background:color-mix(in srgb,var(--line) 28%,transparent)}
+.form i{font-style:normal;font-size:9px;color:var(--sub);letter-spacing:.02em}
+.starb.on{color:var(--gold);text-shadow:0 0 10px color-mix(in srgb,var(--gold) 40%,transparent)}
+
+/* 词卡 */
+.wc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.wc-word{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.05;word-break:break-word}
+.sheet-x{position:absolute;top:13px;right:13px;width:32px;height:32px;border-radius:50%;
+  background:color-mix(in srgb,var(--bg) 70%,var(--card));border:1px solid var(--line);
+  color:var(--sub);font-size:12px;line-height:1;z-index:2}
+.wc-stars{margin-top:6px}
+.wc-stars .stars{font-size:12px;color:var(--gold);letter-spacing:1.5px}
+.more-btn{margin-top:11px;padding:7px 11px;border-radius:8px;background:transparent;
+  border:1px dashed color-mix(in srgb,var(--accent) 30%,var(--line));color:var(--accent);
+  font-size:11px;font-weight:600;letter-spacing:.01em}
+.ex-en{line-height:1.55}
+.qdef b{font-size:10px;color:var(--accent);margin-right:3px}
+.wc-ph{font-size:12.5px;color:var(--sub);margin-top:5px;letter-spacing:.02em}
+.wc-syl{font-size:11px;color:var(--sub);letter-spacing:.05em;margin-top:2px}
+.wc-acts{display:flex;gap:6px;align-items:center;flex:none}
+.wc-acts .icon{width:36px;height:36px;font-size:15px;box-shadow:none}
+.wc-block{margin-top:17px;padding-top:14px;border-top:1px solid color-mix(in srgb,var(--line) 65%,transparent)}
+.wc-lb{font-size:9.5px;letter-spacing:.16em;color:var(--sub);font-weight:700;margin-bottom:8px}
+.wc-def{font-size:12.5px;line-height:1.55;margin:0 0 6px;color:var(--ink);opacity:.9}
+.wc-def .pos{color:var(--accent);font-weight:700;font-size:10px;margin-right:5px}
+.wc-en{font-size:13px;line-height:1.55;margin:0 0 6px;font-style:italic;color:var(--ink);opacity:.85}
+.wc-famd{font-size:14px;line-height:1.6}
+.wc-ex-en{font-size:13.5px;line-height:1.55}
+.wc-ex-cn{font-size:12px;color:var(--sub);line-height:1.55;margin-top:4px}
+.wc-tags{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:14px}
+.wc-tags .stars{font-size:11px;color:var(--gold);letter-spacing:1px;margin-right:4px}
+.wc-tags .tg{font-size:9.5px}
+
+/* 搜索 */
+.searchbar{display:flex;gap:8px;margin-bottom:12px}
+.searchbar input{flex:1;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);
+  color:var(--ink);padding:0 13px;font-family:var(--serif);font-size:15px;outline:none}
+.searchbar input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 10%,transparent)}
+.srlist{display:flex;flex-direction:column;gap:7px;overflow-y:auto;flex:1;padding-bottom:12px}
+.sr{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:13px;background:var(--card);
+  border:1px solid color-mix(in srgb,var(--line) 50%,transparent);text-align:left}
+.sr .sw{font-size:16px;font-weight:700;flex:none;min-width:82px}
+.sr .sw .pos{font-size:9.5px;color:var(--accent);font-weight:700;margin-left:4px}
+.sr .sm{font-size:11.5px;color:var(--sub);line-height:1.45;flex:1}
+.sr .go{font-size:11px;color:var(--sub)}
+.sr .st{color:var(--gold);font-size:11px;flex:none}
+
+/* 完成奖励 */
+.fx{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
+  background:rgba(10,8,4,.42);backdrop-filter:blur(3px);animation:fade .2s ease}
+.fx canvas{position:absolute;inset:0;width:100%;height:100%}
+.fx-card{position:relative;z-index:1;max-width:82vw;padding:24px 26px 22px;border-radius:24px;
+  background:var(--card);border:1px solid color-mix(in srgb,var(--gold) 35%,var(--line));
+  box-shadow:0 30px 70px -28px #000;text-align:center;animation:fxin .45s cubic-bezier(.2,.9,.3,1.18)}
+.fx-em{font-size:46px;line-height:1}
+.fx-t{font-size:18px;font-weight:700;margin-top:7px;letter-spacing:.01em}
+.fx-s{font-size:11.5px;color:var(--sub);margin-top:6px;line-height:1.6}
+.fx-btn{margin-top:15px;padding:9px 24px;border-radius:99px;background:var(--ink);color:var(--bg);
+  font-size:13px;font-weight:600;letter-spacing:.03em}
+@keyframes fxin{from{opacity:0;transform:translateY(14px) scale(.92)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+@media (max-width:360px){
+  h1{font-size:30px}.hero .num{font-size:38px}.qword{font-size:33px}
+  .app{padding-left:14px;padding-right:14px}
+}
 </style>
 </head>
 <body>
@@ -184,10 +422,59 @@ h1{font-size:30px;margin:4px 0 0;letter-spacing:-.02em;font-weight:800}
 <script>
 "use strict";
 const RAW = __WORDS__;
+const FAMD = __FAMD__;
 
 /* ---------- 数据 ---------- */
-const WORDS = RAW.map((r, i) => ({ id: i, w: r[0], ph: r[1], tr: r[2], mask: r[3], d: r[4], f: r[5], ex: r[6] || null, syl: r[7] || null, fam: r[8] || null }));
+const trOf = s => (s || []).map(([p, items]) => (p ? p + ' ' : '') + items.join('，')).join(' / ');
+const WORDS = RAW.map((r, i) => {
+  const senses = r[8] || [];
+  return {
+    id: i, w: r[0], ph: r[1] || '', mask: r[2], d: r[3], f: r[4],
+    ex: r[5] || null, syl: r[6] || null, fam: r[7] || null,
+    senses, spec: r[9] || [], defs: r[10] || [], forms: r[11] || [],
+    stars: r[12] || 0, syn: r[13] || [], ant: r[14] || [],
+    tr: trOf(senses).slice(0, 160) || (FAMD[String(r[0]).toLowerCase()] || '')
+  };
+});
+const WORD_BY = Object.create(null);
+WORDS.forEach(w => { WORD_BY[w.w.toLowerCase()] = w; });
 const N = WORDS.length;
+function lookupWord(key) {
+  if (key === undefined || key === null || key === '') return null;
+  if (typeof key === 'number') return WORDS[key] || null;
+  const s = String(key);
+  if (/^\d+$/.test(s)) return WORDS[Number(s)] || null;
+  const w = WORD_BY[s.toLowerCase()];
+  if (w) return w;
+  const meaning = FAMD[s.toLowerCase()];
+  if (meaning) return { w: s, ph: '', senses: [], spec: [], defs: [], forms: [], stars: 0, syn: [], ant: [], fam: null, famd: meaning, tr: meaning };
+  return null;
+}
+function senseBlock(w, opt) {
+  opt = opt || {};
+  const max = opt.max || 99, mi = opt.maxItems || 99;
+  const rows = (w.senses || []).slice(0, max).map(([p, items]) => {
+    const its = items.slice(0, mi);
+    const more = items.length > mi ? '<span class="semi">；</span><em>…</em>' : '';
+    const body = its.map((x, i) => `<em>${esc(x)}</em>${i < its.length - 1 ? '<span class="semi">；</span>' : ''}`).join('');
+    return `<div class="sen">${p ? `<span class="pos">${esc(p)}</span>` : ''}<span class="mean">${body}${more}</span></div>`;
+  });
+  return rows.length ? `<div class="senses">${rows.join('')}</div>` : '';
+}
+function famChips(w, cls) {
+  return (w.fam || []).map(f => `<button class="famw ${cls || ''}" data-act="wordCard" data-id="${esc(f[0])}"><span class="fw">${esc(f[0])}</span>${f[1] ? `<span class="pos">${esc(f[1])}</span>` : ''}</button>`).join('');
+}
+function relChips(arr, cls) {
+  return (arr || []).map(x => `<button class="rel ${cls || ''}" data-act="wordCard" data-id="${esc(x)}">${esc(x)}</button>`).join('');
+}
+function formChips(arr) {
+  return (arr || []).map(f => `<span class="form"><i>${esc(f[0])}</i>${esc(f[1])}</span>`).join('');
+}
+function starRow(n) {
+  const k = Math.max(0, Math.min(5, n | 0));
+  return k ? `<span class="stars">${'★'.repeat(k)}${'☆'.repeat(5 - k)}</span>` : '';
+}
+
 const RANGES = [
   { k: 0, n: '全部' }, { k: 1, n: '中考' }, { k: 2, n: '高考' }, { k: 4, n: '四级' }, { k: 8, n: '六级' },
   { k: 16, n: '雅思' }, { k: 32, n: '托福' }, { k: 64, n: '沪中考' }, { k: 128, n: '沪高考' }
@@ -260,8 +547,8 @@ let memOnly = false, S = null, view = 'home', ctx = {}, fbTimer = null, lastQId 
 function defaults() {
   return {
     v: 2, range: 0, seq: 0, learned: {}, groups: [], actives: [], cur: null, lastDone: null,
-    days: {}, star: {},
-    cfg: { maxActive: 3, maxHist: 5, recycleAt: 2, diff: 'balanced', autoSay: 1, goal: 20, autoStar: 1 },
+    days: {}, star: {}, fxDay: '',
+    cfg: { maxActive: 3, maxHist: 5, recycleAt: 2, diff: 'balanced', autoSay: 1, goal: 20, autoStar: 1, theme: 'auto', fx: 1 },
     sync: { url: '', token: '', name: '', lastHash: '', lastAt: 0, inbox: [] }
   };
 }
@@ -292,6 +579,7 @@ function migrate(o) {
     }];
   }
   d.lastDone = o.lastDone || null;
+  d.fxDay = o.fxDay || '';
   return d;
 }
 function loadState() {
@@ -349,6 +637,33 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
 }
 function buzz(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) { } }
+
+/* ---------- 主题 ---------- */
+function currentTheme() {
+  const p = (S && S.cfg && S.cfg.theme) || 'auto';
+  let dark = p === 'dark';
+  if (p === 'auto') { try { dark = !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); } catch (e) {} }
+  return dark ? 'dark' : 'light';
+}
+function applyTheme() {
+  const t = currentTheme();
+  document.documentElement.dataset.theme = t;
+  document.documentElement.style.colorScheme = t;
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.content = t === 'dark' ? '#0e1117' : '#f4efe4';
+}
+function themeIcon() { const t = (S && S.cfg && S.cfg.theme) || 'auto'; return t === 'light' ? '☀' : t === 'dark' ? '☾' : '◐'; }
+function weekStrip() {
+  const now = new Date(), arr = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    const k = todayKey(d), c = (S.days || {})[k] || 0;
+    arr.push({ k, c, lab: '日一二三四五六'[d.getDay()], today: i === 0 });
+  }
+  const max = Math.max(S.cfg.goal || 20, ...arr.map(x => x.c), 1);
+  return `<div class="week">${arr.map(x => `<div class="wd ${x.today ? 'today' : ''}"><i><b style="height:${Math.max(3, Math.round(30 * x.c / max))}px"></b></i><span>${x.lab}</span></div>`).join('')}</div>`;
+}
+
 
 /* ---------- 词库与状态 ---------- */
 const rangePool = () => POOLS[S.range] || POOLS[0];
@@ -545,7 +860,15 @@ function finish() {
     const idx = wrongWord ? 0 : Math.min(r.r, 5);
     r.due = now + days_I(idx) * 864e5;
   });
+  const before = todayCount();
   bumpDaily(s.ids.length);
+  const after = todayCount(), goal = S.cfg.goal || 20;
+  let fxKind = '';
+  if (before < goal && after >= goal && S.fxDay !== todayKey()) {
+    S.fxDay = todayKey(); fxKind = 'goal';
+  } else if (s.kind === 'due' && s.ids.length >= 5 && dueIds().length === 0 && S.fxDay !== todayKey()) {
+    S.fxDay = todayKey(); fxKind = 'due';
+  }
   let autoStars = 0;
   if (S.cfg.autoStar) wrong.forEach(id => { if (!S.star[id]) { S.star[id] = now; autoStars++; } });
   const hrec = { ts: now, first, total: s.ids.length, taps: s.taps, dur, wrong };
@@ -568,6 +891,7 @@ function finish() {
   S.actives = S.actives.filter(a => a.sid !== s.sid);
   S.cur = null;
   save(); go('done');
+  if (fxKind) setTimeout(() => celebrate(fxKind), 280);
 }
 
 /* ---------- 视图 ---------- */
@@ -599,8 +923,12 @@ VIEWS.home = function () {
 
   return `
   <div class="hd">
-    <div><div class="eyebrow">SHANGHAI · CET</div><h1>词书</h1></div>
-    <button class="icon" data-act="settings">⚙</button>
+    <div><div class="eyebrow">WORD BOOK · 词书</div><h1>词书</h1></div>
+    <div class="hd-tools">
+      <button class="icon" data-act="search" aria-label="查词">🔍</button>
+      <button class="icon" data-act="themeQuick" aria-label="切换外观">${themeIcon()}</button>
+      <button class="icon" data-act="settings" aria-label="设置">⚙</button>
+    </div>
   </div>
   <div class="card hero">
     <div class="num">${st.learned}<small> / ${st.pool}</small></div>
@@ -608,6 +936,8 @@ VIEWS.home = function () {
     <div class="bar"><i style="width:${pct}%"></i></div>
     <div class="sub">${st.groups} 组 · 错词 ${st.wrong} · 待学 ${remain}</div>
     <div class="sub streak">🔥 连续 <b>${streakDays()}</b> 天 · 今日 <b>${todayCount()}</b>/${S.cfg.goal || 20} 词</div>
+    ${weekStrip()}
+    ${S.fxDay === todayKey() ? '<div class="reward">✦ 今日奖励已领取</div>' : ''}
   </div>
   <div class="chips">${RANGES.map(r => `<button class="chip ${S.range === r.k ? 'on' : ''}" data-act="range" data-id="${r.k}">${r.n}</button>`).join('')}</div>
   <div class="actions">${primary}${sub}</div>
@@ -640,10 +970,13 @@ VIEWS.preview = function () {
         <div class="main">
           <div class="en">${esc(w.w)}${w.ph ? `<span class="ph">/${esc(w.ph)}/</span>` : ''}<button class="spk" data-act="say" data-id="${id}">🔊</button></div>
           ${w.syl && w.syl !== w.w ? `<div class="syl">${esc(w.syl)}</div>` : ''}
-          <div class="zh">${esc(w.tr)}</div>
-          <div class="ex">${w.ex ? `<div>${esc(w.ex[0])}</div><div class="cn">${esc(w.ex[1])}</div>` : '<div>暂无例句</div>'}
-            ${w.fam && w.fam.length ? `<div class="fam">同族：${w.fam.map(f => `${esc(f[0])}${f[1] ? `<i>${f[1]}</i>` : ''}`).join('、')}</div>` : ''}</div>
-          <div class="more">轻点看例句 ›</div>
+          <div class="zh">${senseBlock(w, { max: 3, maxItems: 4 })}</div>
+          <div class="ex">${w.ex ? `<div class="ex-en">${esc(w.ex[0])}</div><div class="cn">${esc(w.ex[1])}</div>` : '<div>暂无例句</div>'}
+            ${w.forms && w.forms.length ? `<div class="chips-wrap" style="margin-top:8px">${formChips(w.forms)}</div>` : ''}
+            ${w.fam && w.fam.length ? `<div class="famline"><span class="famlb">同族</span>${famChips(w, 'sm')}</div><div class="famhint">点词看释义</div>` : ''}
+            <button class="more-btn" data-act="wordCard" data-id="${id}">完整词卡 · 词形 / 英英 / 近反义 ›</button>
+          </div>
+          <div class="more">轻点看例句、词形与同族词 ›</div>
           <div class="tags">${tagNames(w.mask).map(t => `<span class="tg">${t}</span>`).join('')}
             <button class="starb ${S.star[id] ? 'on' : ''}" data-act="star" data-id="${id}" aria-label="收藏">${S.star[id] ? '★' : '☆'}</button></div>
         </div>
@@ -674,11 +1007,15 @@ VIEWS.quiz = function () {
       <div class="qword">${esc(w.w)}<button class="spk" data-act="say" data-id="${id}">🔊</button></div>
       ${w.ph ? `<div class="qph">/${esc(w.ph)}/</div>` : ''}
       ${w.syl && w.syl !== w.w ? `<div class="qsyl">${esc(w.syl)}</div>` : ''}
-      ${reveal ? `<div class="qzh">${esc(w.tr)}</div>
-        ${w.fam && w.fam.length ? `<div class="qfam">同族词：${w.fam.map(f => `<b>${esc(f[0])}</b>${f[1] ? `<i>${f[1]}</i>` : ''}`).join(' · ')}</div>` : ''}
+      ${reveal ? `<div class="qzh">${senseBlock(w, { max: 3, maxItems: 3 })}
+          ${w.spec && w.spec.length ? `<div class="sen" style="margin-top:5px"><span class="pos">${esc(w.spec[0][0])}</span><span class="mean">${w.spec[0][1].slice(0, 3).map(esc).join('；')}</span></div>` : ''}
+        </div>
+        ${w.defs && w.defs.length ? `<div class="qdef">${w.defs[0][0] ? `<b>${esc(w.defs[0][0])}</b> ` : ''}${esc(w.defs[0][1])}</div>` : ''}
+        ${w.fam && w.fam.length ? `<div class="qfam">同族词：${famChips(w, 'sm')}</div>` : ''}
         <div class="qex">${w.ex
           ? `<div class="en">${esc(w.ex[0])}<button class="spk" data-act="sayEx" data-id="${id}">🔊</button></div><div class="cn">${esc(w.ex[1])}</div>`
-          : '<div class="none">这个词暂无例句</div>'}</div>`
+          : '<div class="none">这个词暂无例句</div>'}</div>
+        <button class="qmore" data-act="wordCard" data-id="${id}">完整词卡 · 词形 / 英英 / 近反义 ›</button>`
         : `<div class="qhint">轻点卡片看释义</div>`}
     </div>
   </div>
@@ -712,6 +1049,7 @@ VIEWS.done = function () {
   </div>
   ${(d.wrong || d.recycled || d.stars) ? `<div class="tgline">本次错 ${d.wrong} 词${d.stars ? ` · 新收录 ${d.stars} 个生词` : ''}${d.recycled ? ` · 回炉 ${d.recycled} 词` : ''}</div>` : ''}
   <div class="tgline">今日 ${d.today}/${d.goal} 词 · 连续 ${d.streak} 天</div>
+  ${S.fxDay === todayKey() ? '<div class="reward">✦ 今天的奖励已经收下</div>' : ''}
   ${again}
   <div style="height:10px"></div>
   <button class="cta ghost" data-act="home">回首页</button>`;
@@ -733,7 +1071,7 @@ VIEWS.spell = function () {
   </div>
   <div class="bar" style="margin:-6px 0 14px"><i style="width:${pctOf(done, s.ids.length)}%"></i></div>
   <div class="spell spellw">
-    <div class="qcard"><div class="qzh">${esc(w.tr)}</div></div>
+    <div class="qcard"><div class="qzh">${senseBlock(w, { max: 4, maxItems: 4 })}</div></div>
     <input id="spellIn" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="输入英文，回车检查" value="${esc(r.ans || '')}" ${r.res ? 'disabled' : ''}>
     <div class="res ${r.res}">${r.res === 'ok' ? '✓ 拼写正确' : r.res === 'bad' ? `✗ 正确答案：<b>${esc(w.w)}</b>` : ''}</div>
     <div class="qbtns"><button class="btn ok" data-act="spellCheck" ${r.res ? 'disabled' : ''}>检查</button></div>
@@ -758,6 +1096,38 @@ VIEWS.book = function () {
         <div class="go">›</div></div>`;
     }).join('') : `<div class="empty">这个词库还没有学完的组<br>先去学完一组吧</div>`}
   </div>`;
+};
+
+function searchList(q) {
+  q = String(q || '').trim().toLowerCase();
+  if (!q) return `<div class="empty">输入英文或中文，查 12,000+ 词<br><span style="font-size:11px">例：book · 预订 · appear</span></div>`;
+  const pre = [], mid = [];
+  for (let i = 0; i < WORDS.length; i++) {
+    const w = WORDS[i], lw = w.w.toLowerCase();
+    if (lw === q) { pre.unshift(w); continue; }
+    if (lw.startsWith(q)) { pre.push(w); continue; }
+    if (lw.includes(q) || w.tr.includes(q)) mid.push(w);
+  }
+  const list = pre.concat(mid).slice(0, 40);
+  if (!list.length) return `<div class="empty">没有找到「${esc(q)}」<br>换个拼写或中文意思试试</div>`;
+  return list.map(w => {
+    const p = w.senses && w.senses[0] ? w.senses[0][0] : '';
+    const first = w.senses && w.senses[0] ? w.senses[0][1].join('；') : w.tr;
+    return `<button class="sr" data-act="wordCard" data-id="${w.id}"><span class="sw">${esc(w.w)}${p ? `<span class="pos">${esc(p)}</span>` : ''}</span><span class="sm">${esc(first.slice(0, 58))}</span>${w.stars ? `<span class="st">${'★'.repeat(w.stars)}</span>` : ''}<span class="go">›</span></button>`;
+  }).join('');
+}
+VIEWS.search = function () {
+  const q = ctx.q || '';
+  return `
+  <div class="topbar">
+    <button class="tbtn" data-act="home">‹</button>
+    <div class="ttl">查词 <span>· ${N} 词</span></div>
+    <div style="width:38px"></div>
+  </div>
+  <div class="searchbar">
+    <input id="searchIn" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="输入英文或中文意思" value="${esc(q)}">
+  </div>
+  <div class="srlist" id="srlist">${searchList(q)}</div>`;
 };
 
 VIEWS.starbook = function () {
@@ -838,6 +1208,123 @@ function openModal(html) {
   document.body.appendChild(modalEl);
 }
 function closeModal() { if (modalEl) { modalEl.remove(); modalEl = null; } }
+
+/* ---------- 词卡 ---------- */
+function openWordCard(key) {
+  const w = lookupWord(key);
+  if (!w) return toast('词库里没有这个词');
+  const main = w.id !== undefined;
+  const sec = [];
+  if (w.senses && w.senses.length) sec.push(`<div class="wc-block"><div class="wc-lb">释义</div>${senseBlock(w)}</div>`);
+  if (w.spec && w.spec.length) sec.push(`<div class="wc-block"><div class="wc-lb">专业释义</div>${w.spec.map(([d, items]) => `<div class="sen"><span class="pos">${esc(d)}</span><span class="mean">${items.map(x => `<em>${esc(x)}</em>`).join('')}</span></div>`).join('')}</div>`);
+  if (w.defs && w.defs.length) sec.push(`<div class="wc-block"><div class="wc-lb">英英释义</div>${w.defs.map(([p, t]) => `<p class="wc-en">${p ? `<span class="pos">${esc(p)}</span> ` : ''}${esc(t)}</p>`).join('')}</div>`);
+  if (w.forms && w.forms.length) sec.push(`<div class="wc-block"><div class="wc-lb">词形变化</div><div class="chips-wrap">${formChips(w.forms)}</div></div>`);
+  if (w.syn && w.syn.length) sec.push(`<div class="wc-block"><div class="wc-lb">近义词</div><div class="chips-wrap">${relChips(w.syn)}</div></div>`);
+  if (w.ant && w.ant.length) sec.push(`<div class="wc-block"><div class="wc-lb">反义词</div><div class="chips-wrap">${relChips(w.ant, 'ant')}</div></div>`);
+  if (w.fam && w.fam.length) sec.push(`<div class="wc-block"><div class="wc-lb">同族词</div><div class="chips-wrap">${famChips(w)}</div><div class="famhint">点任意词继续查释义</div></div>`);
+  if (w.ex) sec.push(`<div class="wc-block"><div class="wc-lb">例句</div><div class="wc-ex-en">${esc(w.ex[0])}<button class="spk" data-act="sayText" data-id="${esc(w.ex[0])}">🔊</button></div><div class="wc-ex-cn">${esc(w.ex[1])}</div></div>`);
+  if (!sec.length) sec.push(`<div class="wc-block"><div class="wc-famd">${esc(w.famd || '暂无中文释义')}</div></div>`);
+  openModal(`
+    <button class="sheet-x" data-act="closeSheet" aria-label="关闭">✕</button>
+    <div class="wc-head">
+      <div>
+        <div class="wc-word">${esc(w.w)}</div>
+        ${w.ph ? `<div class="wc-ph">/${esc(w.ph)}/</div>` : ''}
+        ${w.syl && w.syl !== w.w ? `<div class="wc-syl">${esc(w.syl)}</div>` : ''}
+        ${w.stars ? `<div class="wc-stars">${starRow(w.stars)}</div>` : ''}
+      </div>
+      <div class="wc-acts">
+        <button class="icon" data-act="sayWord" data-id="${esc(w.w)}" aria-label="朗读">🔊</button>
+        ${main ? `<button class="icon starb ${S.star[w.id] ? 'on' : ''}" data-act="wordStar" data-id="${w.id}" aria-label="收藏">${S.star[w.id] ? '★' : '☆'}</button>` : ''}
+      </div>
+    </div>
+    ${sec.join('')}
+    ${main ? `<div class="wc-tags">${tagNames(w.mask).map(t => `<span class="wtag">${esc(t)}</span>`).join('')}</div>` : ''}
+  `);
+}
+
+/* ---------- 完成奖励 ---------- */
+let fxEl = null;
+function celebrate(kind) {
+  if (!S.cfg.fx) return;
+  try { if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {}
+  if (fxEl) { fxEl.remove(); fxEl = null; }
+  const styles = ['confetti', 'stars', 'petals', 'fireworks'];
+  const style = styles[Math.floor(Math.random() * styles.length)];
+  const msgs = kind === 'due'
+    ? ['今日复习清空，收下这片星光', '该复习的都复习完了，漂亮', '坚持复习的人，运气不会差']
+    : ['今天的任务完成啦', '又坚持了一天，了不起', '这一页翻过去，明天继续', '小小的胜利，也值得庆祝'];
+  const ems = ['🎉', '✨', '🌟', '🎊', '💫', '🌸'];
+  const el = document.createElement('div');
+  el.className = 'fx';
+  el.innerHTML = `<canvas></canvas><div class="fx-card"><div class="fx-em">${ems[Math.floor(Math.random() * ems.length)]}</div><div class="fx-t">${msgs[Math.floor(Math.random() * msgs.length)]}</div><div class="fx-s">今日 ${todayCount()}/${S.cfg.goal || 20} 词 · 连续 ${streakDays()} 天</div><button class="fx-btn">收下奖励</button></div>`;
+  document.body.appendChild(el);
+  fxEl = el;
+  const close = () => { if (fxEl === el) { el.remove(); fxEl = null; } };
+  el.addEventListener('click', close);
+  const timer = setTimeout(close, 9000);
+  el.addEventListener('click', () => clearTimeout(timer));
+  const canvas = el.querySelector('canvas');
+  let g = null;
+  try {
+    if (typeof CanvasRenderingContext2D !== 'undefined' && canvas && canvas.getContext) g = canvas.getContext('2d');
+  } catch (e) { g = null; }
+  if (g) runFx(g, canvas, style);
+  buzz([0, 24, 50, 24]);
+}
+function runFx(g, canvas, style) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const W = window.innerWidth, H = window.innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const pal = ['#c8963e', '#d95d74', '#3b5bd8', '#2f9d7c', '#8b6bd8', '#f0c96a'];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  let parts = [];
+  if (style === 'confetti') {
+    for (let i = 0; i < 150; i++) parts.push({ x: rnd(0, W), y: rnd(-H, 0), vx: rnd(-.6, .6), vy: rnd(1.4, 3.4), r: rnd(2, 5), a: rnd(0, 6.28), va: rnd(-.15, .15), c: pal[i % pal.length], t: 'rect' });
+  } else if (style === 'stars') {
+    for (let i = 0; i < 80; i++) { const a = rnd(0, 6.28), sp = rnd(2, 8); parts.push({ x: W / 2, y: H * .42, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: rnd(5, 13), life: rnd(55, 100), max: 100, c: pal[i % pal.length], t: 'star' }); }
+  } else if (style === 'petals') {
+    for (let i = 0; i < 90; i++) parts.push({ x: rnd(0, W), y: rnd(-H, 0), vx: rnd(-.5, .5), vy: rnd(.8, 2.2), r: rnd(3, 7), a: rnd(0, 6.28), va: rnd(-.04, .04), sway: rnd(.4, 1.4), ph: rnd(0, 6.28), c: pal[i % pal.length], t: 'petal' });
+  } else {
+    for (let b = 0; b < 5; b++) {
+      const cx = rnd(W * .18, W * .82), cy = rnd(H * .16, H * .55), n = 46;
+      for (let i = 0; i < n; i++) { const a = i / n * 6.28 + rnd(-.05, .05), sp = rnd(1.5, 5.5); parts.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: rnd(1.4, 3), life: rnd(60, 100), max: 100, c: pal[(b + i) % pal.length], t: 'spark' }); }
+    }
+  }
+  let last = performance.now();
+  function tick(t) {
+    const dt = Math.min(2.2, (t - last) / 16.67); last = t;
+    g.clearRect(0, 0, W, H);
+    let alive = 0;
+    parts.forEach(p => {
+      if (p.life !== undefined && p.life <= 0) return;
+      alive++;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.t === 'rect') { p.vy += .03 * dt; p.a += p.va * dt; p.vx *= .997; }
+      else if (p.t === 'star') { p.vy += .03 * dt; p.vx *= .985; p.vy *= .985; p.life -= dt; }
+      else if (p.t === 'petal') { p.ph += .04 * dt; p.x += Math.sin(p.ph) * p.sway * dt; p.a += p.va * dt; p.vx *= .999; }
+      else { p.vy += .045 * dt; p.vx *= .985; p.vy *= .985; p.life -= dt; }
+      const alpha = p.life !== undefined ? Math.max(0, Math.min(1, p.life / 30)) : 1;
+      g.globalAlpha = alpha; g.fillStyle = p.c;
+      if (p.t === 'star') {
+        g.save(); g.translate(p.x, p.y); g.rotate(p.a || 0);
+        g.font = `${p.r}px serif`; g.fillText('✦', -p.r / 2, p.r / 2); g.restore();
+      } else if (p.t === 'petal') {
+        g.save(); g.translate(p.x, p.y); g.rotate(p.a); g.beginPath();
+        g.ellipse(0, 0, p.r, p.r * .55, 0, 0, 6.28); g.fill(); g.restore();
+      } else if (p.t === 'spark') {
+        g.beginPath(); g.arc(p.x, p.y, p.r, 0, 6.28); g.fill();
+      } else {
+        g.save(); g.translate(p.x, p.y); g.rotate(p.a); g.fillRect(-p.r, -p.r * .45, p.r * 2, p.r * .9); g.restore();
+      }
+    });
+    g.globalAlpha = 1;
+    if (alive && t < 9000) requestAnimationFrame(tick); else g.clearRect(0, 0, W, H);
+  }
+  requestAnimationFrame(tick);
+}
+
 
 
 /* ---------- 老师端同步 ---------- */
@@ -933,6 +1420,8 @@ const ACTIONS = {
     const seg = (key, vals) => `<div class="seg">${vals.map(v => `<button class="sbtn ${String(c[key]) === String(v[0]) ? 'on' : ''}" data-s="${key}" data-v="${v[0]}">${v[1]}</button>`).join('')}</div>`;
     openModal(`
     <h3>设置</h3>
+    <div class="srow"><span>外观</span>${seg('theme', [['auto', '跟随系统'], ['light', '浅色'], ['dark', '深色']])}</div>
+    <div class="srow"><span>完成奖励动效</span>${seg('fx', [[1, '开'], [0, '关']])}</div>
     <div class="srow"><span>未完成组上限</span>${seg('maxActive', [[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']])}</div>
     <div class="srow"><span>分组难度</span>${seg('diff', [['balanced', '均衡'], ['ramp', '递进']])}</div>
     <div class="srow"><span>每组记录保留</span>${seg('maxHist', [[3, '3 次'], [5, '5 次'], [10, '10 次']])}</div>
@@ -962,6 +1451,22 @@ const ACTIONS = {
     <div class="tip">词库 ${N} 词 · demo 0.5<br>未完成的组超过上限时，最久没动的那组会作废，它的词回到词库。</div>`);
   },
   range(id) { S.range = Number(id); save(); go('home'); },
+  search() { go('search', { q: '' }); setTimeout(() => { const i = document.getElementById('searchIn'); if (i) i.focus(); }, 80); },
+  themeQuick() {
+    const order = ['auto', 'light', 'dark'], cur = S.cfg.theme || 'auto';
+    S.cfg.theme = order[(order.indexOf(cur) + 1) % 3];
+    save(); applyTheme(); render();
+    toast('外观：' + ({ auto: '跟随系统', light: '浅色', dark: '深色' })[S.cfg.theme]);
+  },
+  wordCard(key) { openWordCard(key); },
+  wordStar(key) {
+    const w = lookupWord(key); if (!w || w.id === undefined) return;
+    if (S.star[w.id]) delete S.star[w.id]; else S.star[w.id] = Date.now();
+    save(); render(); openWordCard(w.id); buzz(8);
+  },
+  sayWord(id) { speak(String(id || '')); },
+  sayText(id) { speak(String(id || '')); },
+  closeSheet() { closeModal(); },
   newgroup() { startLearn(); },
   resume(id) {
     const s = S.actives.find(a => a.sid === id);
@@ -1061,18 +1566,18 @@ const ACTIONS = {
 
 document.addEventListener('keydown', e => {
   if (e.target && e.target.id === 'spellIn' && e.key === 'Enter') { e.preventDefault(); ACTIONS.spellCheck(); }
+  if (e.target && e.target.id === 'searchIn' && e.key === 'Escape') { e.target.blur(); }
+});
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'searchIn') {
+    ctx.q = e.target.value;
+    const box = document.getElementById('srlist');
+    if (box) box.innerHTML = searchList(ctx.q);
+  }
 });
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
-  if (!el) return;
-  const fn = ACTIONS[el.dataset.act];
-  if (fn) fn(el.dataset.id, el);
-});
-
-document.addEventListener('keydown', e => {
-  if (e.target && e.target.id === 'spellIn' && e.key === 'Enter') { e.preventDefault(); ACTIONS.spellCheck(); }
-});
-document.addEventListener('click', e => {
+  if (el) { const fn = ACTIONS[el.dataset.act]; if (fn) fn(el.dataset.id, el); return; }
   const b = e.target.closest('[data-s]');
   if (!b || !modalEl) return;
   const k = b.dataset.s;
@@ -1080,6 +1585,8 @@ document.addEventListener('click', e => {
     S.cfg[k] = Number(b.dataset.v); save(); ACTIONS.settings(); return;
   }
   if (k === 'diff') { S.cfg.diff = b.dataset.v; save(); ACTIONS.settings(); return; }
+  if (k === 'theme') { S.cfg.theme = b.dataset.v; save(); applyTheme(); ACTIONS.settings(); return; }
+  if (k === 'fx') { S.cfg.fx = Number(b.dataset.v); save(); ACTIONS.settings(); return; }
   if (k === 'syncbind') { syncBind(); return; }
   if (k === 'syncpush') { syncPush(); return; }
   if (k === 'ackall') {
@@ -1119,7 +1626,7 @@ function doImport() {
         if (!d || typeof d !== 'object' || !('learned' in d)) throw new Error('格式不对');
         S = migrate(d);
         S.cfg = Object.assign(defaults().cfg, d.cfg || {});
-        save(); closeModal(); go('home'); toast('已导入备份');
+        save(); applyTheme(); closeModal(); go('home'); toast('已导入备份');
       } catch (e) { toast('导入失败：' + e.message); }
     };
     r.readAsText(f);
@@ -1136,6 +1643,12 @@ S.learned = S.learned || {}; S.groups = S.groups || []; S.actives = S.actives ||
 S.days = S.days || {}; S.star = S.star || {};
 if (!S.actives.some(a => a.sid === S.cur)) S.cur = null;
 S.actives.forEach(a => { if (!a.queue) a.queue = a.ids.slice(); a.fb = null; a.peek = false; });
+applyTheme();
+try {
+  if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if ((S.cfg.theme || 'auto') === 'auto') { applyTheme(); render(); }
+  });
+} catch (e) {}
 render();
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 window.addEventListener('pagehide', save);

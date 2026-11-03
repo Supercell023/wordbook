@@ -1,0 +1,25 @@
+{
+  "id": "./",
+  "name": "词书 · 背单词",
+  "short_name": "词书",
+  "description": "上海中高考 / 四六级 / 雅思托福 离线背单词",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "./vocab.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait",
+  "background_color": "#f4efe4",
+  "theme_color": "#f4efe4",
+  "categories": ["education", "books"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

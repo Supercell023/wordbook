@@ -389,5 +389,93 @@ console.log('\n[16] 今日复习与拼写自测');
   ok(doc.body.textContent.includes('拼写自测完成'), '拼对后完成自测');
 }
 
+
+console.log('\n[17] 多义项、英文词性与词卡');
+{
+  const d = makeDom(); const w = d.window, doc = w.document;
+  const clk = (act, id) => {
+    const els = [...doc.querySelectorAll(`[data-act="${act}"]`)];
+    const el = els.find(e => id === undefined || e.dataset.id === String(id));
+    if (!el) throw new Error(`missing ${act} ${id}`);
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  };
+  clk('newgroup');
+  const pos = doc.querySelector('.pvrow .zh .pos');
+  ok(!!pos && /^(n|v|vt|vi|adj|adv|prep|conj|pron|num|art|interj)\.$/.test(pos.textContent.trim()), '释义使用英文词性缩写');
+  const book = w.eval("WORDS.find(x => x.w === 'book')");
+  ok(book.senses.length >= 2, 'book 拆出多个词性义项');
+  ok(book.senses.some(s => s[0] === 'n.') && book.senses.some(s => s[0] === 'v.'), 'book 同时有名词和动词义项');
+  ok(book.defs.length > 0, 'book 有英英释义');
+  ok(book.forms.length > 0, 'book 有词形变化');
+  ok(book.stars > 0, 'book 有柯林斯星级');
+  ok(book.syn.length > 0, 'book 有近义词');
+  w.eval("openWordCard('book')");
+  ok((doc.querySelector('.wc-word') || {}).textContent === 'book', '词卡显示单词');
+  ok(doc.querySelectorAll('.sheet .wc-block').length >= 4, '词卡分区展示释义/英英/词形/近反义');
+  ok(doc.body.textContent.includes('英英释义'), '词卡有英英释义标题');
+  ok(doc.querySelectorAll('.sheet .wc-en').length > 0, '词卡渲染英文释义');
+  ok(doc.querySelectorAll('.sheet .form').length > 0, '词卡渲染词形 chips');
+  const fam = doc.querySelector('.sheet .famw');
+  ok(!!fam && fam.dataset.act === 'wordCard', '词卡里的同族词可点击');
+  if (fam) {
+    fam.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+    ok((doc.querySelector('.wc-word') || {}).textContent === fam.dataset.id, '点同族词打开该词词卡');
+    ok(doc.body.textContent.includes('释义') || doc.body.textContent.includes('暂无中文释义'), '同族词词卡有释义');
+  }
+  doc.querySelector('.sheet-x').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok(!doc.querySelector('.sheet'), '关闭词卡');
+}
+
+console.log('\n[18] 主题切换与暗夜模式');
+{
+  const d = makeDom(); const w = d.window, doc = w.document;
+  const clk = (act) => {
+    const el = doc.querySelector(`[data-act="${act}"]`);
+    if (!el) throw new Error(`missing ${act}`);
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  };
+  const theme = () => doc.documentElement.dataset.theme;
+  ok(theme() === 'light', '默认浅色（无系统深色偏好）');
+  clk('themeQuick');
+  ok(theme() === 'light' && w.eval("S.cfg.theme") === 'light', '第一次切换到浅色');
+  clk('themeQuick');
+  ok(theme() === 'dark', '第二次切换到暗夜模式');
+  ok(w.eval("S.cfg.theme") === 'dark', '暗夜模式已保存');
+  const meta = doc.querySelector('meta[name="theme-color"]');
+  ok(meta && meta.content === '#0e1117', '状态栏颜色同步为暗夜');
+  clk('themeQuick');
+  ok(theme() === 'light' && w.eval("S.cfg.theme") === 'auto', '第三次切回跟随系统');
+}
+
+console.log('\n[19] 搜索与完成奖励');
+{
+  const d = makeDom(); const w = d.window, doc = w.document;
+  const clk = (act, id) => {
+    const els = [...doc.querySelectorAll(`[data-act="${act}"]`)];
+    const el = els.find(e => id === undefined || e.dataset.id === String(id));
+    if (!el) throw new Error(`missing ${act} ${id}`);
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  };
+  clk('search');
+  const input = doc.getElementById('searchIn');
+  ok(!!input, '搜索页有输入框');
+  input.value = 'appear';
+  input.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const hit = doc.querySelector('#srlist [data-act="wordCard"]');
+  ok(!!hit, '搜索 appear 命中');
+  hit.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok((doc.querySelector('.wc-word') || {}).textContent === 'appear', '搜索结果可打开词卡');
+  ok(doc.body.textContent.includes('出现'), '词卡展示丰富释义');
+  doc.querySelector('.sheet-x').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  w.eval("go('home')");
+
+  w.eval("S.cfg.goal=1; S.days[todayKey()]=0; S.fxDay=null; save()");
+  w.eval("(function(){ const id = WORDS.findIndex(x => x.w === 'book'); const s = newSession('group', [id], {seen:true}); S.actives=[s]; S.cur=s.sid; save(); go('quiz'); })()");
+  clk('yes');
+  ok(!!doc.querySelector('.done-hero'), '单词会话完成');
+  ok(w.eval('S.fxDay') === w.eval('todayKey()'), '达到每日目标触发奖励并记录日期');
+  ok(doc.body.textContent.includes('今天的奖励已经收下'), '完成页显示今日奖励状态');
+}
+
 console.log(`\n结果：${pass} 通过，${fail} 失败`);
 process.exit(fail ? 1 : 0);

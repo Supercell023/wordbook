@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="词书">
+  <title>词书 · 背单词</title>
+  <rect width="512" height="512" rx="116" ry="116" fill="#f4efe4"/>
+  <rect x="90" y="97" width="332" height="318" rx="22" ry="22" fill="#2d4a74"/>
+  <rect x="108" y="121" width="47" height="270" rx="20" ry="20" fill="#24405f"/>
+  <rect x="190" y="156" width="152" height="29" rx="14" ry="14" fill="#fffdf7"/>
+  <rect x="190" y="220" width="152" height="29" rx="14" ry="14" fill="#fffdf7"/>
+  <rect x="190" y="284" width="152" height="29" rx="14" ry="14" fill="#fffdf7"/>
+  <rect x="190" y="348" width="96" height="29" rx="14" ry="14" fill="#fffdf7"/>
+  <path d="M356 97h62v136l-31-27-31 27z" fill="#c08a2e"/>
+</svg>

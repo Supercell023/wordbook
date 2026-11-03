@@ -7,8 +7,8 @@
 词库自己建 · 数据全在本地 · 服务器只帮你收作业
 
 [![词库](https://img.shields.io/badge/%E8%AF%8D%E5%BA%93-12%2C115%20%E8%AF%8D-2ea44f?style=for-the-badge)](https://github.com/Supercell023/wordbook)
-[![单文件](https://img.shields.io/badge/%E5%8D%95%E6%96%87%E4%BB%B6-2.5MB-1f6feb?style=for-the-badge)](https://github.com/Supercell023/wordbook/releases)
-[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-123%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
+[![单文件](https://img.shields.io/badge/%E5%8D%95%E6%96%87%E4%BB%B6-5.5MB-1f6feb?style=for-the-badge)](https://github.com/Supercell023/wordbook/releases)
+[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-152%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Android%20%C2%B7%20iOS%20%C2%B7%20Web-8957e5?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-MIT-yellow?style=for-the-badge)](LICENSE)
 
@@ -18,8 +18,12 @@
 
 <img src="docs/screenshots/shot-home.png" width="22%" alt="首页">
 <img src="docs/screenshots/shot-preview.png" width="22%" alt="熟悉单词">
+<img src="docs/screenshots/shot-card.png" width="22%" alt="词卡">
 <img src="docs/screenshots/shot-v2-quiz.png" width="22%" alt="答题">
-<img src="docs/screenshots/teacher-admin.png" width="22%" alt="老师端">
+<br>
+<img src="docs/screenshots/shot-dark.png" width="44%" alt="暗夜模式">
+<img src="docs/screenshots/shot-fx.png" width="44%" alt="完成奖励">
+<br><sub>暗夜模式 · 完成奖励</sub>
 
 </div>
 
@@ -33,6 +37,8 @@
 | 学习数据 | 存在别人服务器上 | **全在本地**，断网也能背，导出就是一份 JSON |
 | 分组 | 算法决定，你只能跟着走 | **一组 20 词，全部点「掌握」才算过**，不熟的本组重考 |
 | 复习 | 只能按它安排的来 | **按原组复习**，或**跨组随机重组 20 词** |
+| 词条 | 一两个中文意思，词性写「名/动」 | **多义项 + 英文词性 + 英英释义 + 词形变化 + 近反义词 + 柯林斯星级** |
+| 查词 | 只能按词表一页页翻 | 首页 🔍 **英文 / 中文都能查**；同族词、近反义词在词卡里都能继续点 |
 | 老师 | 买班级版才行 | **自带一个零依赖服务器**：激活码绑定、进度推送、AI 点评 |
 | 隐私 | 学生数据进平台 | 只收昵称和进度，**不收集任何个人信息** |
 
@@ -58,7 +64,9 @@
               按原组复习（可随机选组）              跨组随机重组 20 词
 ```
 
-点开释义之后还有三样东西：**中英对照例句**、**同族词**（appear → appearance 名）、**音节划分**（ap·pear），单词旁边有 🔊 朗读。
+点开释义之后还有：**中英对照例句**、**音节划分**（ap·pear）、**同族词**（appear → appearance n.）、**词形变化**（book → booked / books）、**近反义词**；同族词和近反义词都可以继续点开看释义。单词旁边有 🔊 朗读。
+
+界面用**宋体 + Times New Roman** 的书卷排版，支持**浅色 / 暗夜 / 跟随系统**；复习完一天的任务会随机撒星星、花瓣或烟花。
 
 ## 🚀 三种用法，挑一个
 
@@ -70,9 +78,13 @@
 
 下载 Releases 里的 `wordbook.apk` 安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
 
-### ③ 添加到主屏幕（iPhone 推荐）
+### ③ 安装成 PWA（iPhone / Android 推荐）
 
-把 `server/` 部署到一台 https 服务器，Safari 打开后「分享 → 添加到主屏幕」，得到一个全屏、可离线、能发音的「网页 App」。iOS 不能侧载，这是免签名方案；需要真机安装就用 `ios/` 里的 Xcode 工程。
+把 `server/` 部署到一台 **https** 服务器（或在本机用 `http://localhost` 调试）。Android Chrome 打开后会弹出「安装应用」，iPhone Safari 用「分享 → 添加到主屏幕」。安装后全屏、可离线、能发音。
+
+- PWA 要求 **HTTPS 或 localhost**；局域网 `http://192.168.x.x` 浏览器不允许安装。
+- 构建时跑 `./build.sh all`，会生成图标、同步 manifest / sw / icons 到四个端，并自校验。
+- 详细排查见 [部署指南](docs/部署指南.md) 第八节。
 
 ## 🗂 词库
 
@@ -89,7 +101,7 @@
 
 （一个词可以属于多个词库，所以加起来不等于总数）
 
-合计 **12,115** 词，例句覆盖 **97.2%**（11,773 条），同族词覆盖 **49.6%**（6,007 个），音节全部自动切分（8,823 个多音节词）。
+合计 **12,115** 词，例句覆盖 **97.2%**（11,773 条），同族词覆盖 **49.6%**（6,006 个），音节全部自动切分（8,823 个多音节词）。
 
 > 雅思、托福没有官方词表（ETS 和英国文化协会都没发布过），这里用的是社区整理版，来自 ECDICT 的考试标签。
 
@@ -97,7 +109,7 @@
 
 ```text
   ECDICT ─┐
-  上海中考 ─┼─▶ tools/build.py ─▶ dist/vocab.html（2.5MB 单文件）
+  上海中考 ─┼─▶ tools/build.py ─▶ dist/vocab.html（5.5MB 单文件）
   上海高考 ─┤        │                  ├─▶ 浏览器直接打开
   Tatoeba ─┘        │                  ├─▶ server/public ─▶ 学生手机
   WordNet ──────────┘                  ├─▶ android/assets ─▶ APK
@@ -156,8 +168,8 @@ sudo bash server/deploy.sh --domain wb.example.com
 
 ## ✅ 测试
 
-- **123 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移等全部流程
-- **布局检查**：用 Chromium 量每个页面的元素边界，保证 360px 宽度下没有横向溢出
+- **152 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
+- **布局检查**：用 Chromium 量每个页面的元素边界，保证 390px 手机宽度下没有横向溢出
 - **服务器测试**：25 项接口断言（激活码、去重、越权、伪造令牌）
 
 ## 📚 文档
@@ -165,6 +177,7 @@ sudo bash server/deploy.sh --domain wb.example.com
 - [使用说明](docs/使用说明.md) —— 学生怎么背、老师怎么看
 - [部署指南](docs/部署指南.md) —— 从零到一台能用的服务器
 - [架构说明](docs/架构.md) —— 数据结构、分组算法、接口清单
+- [竞品调研](docs/竞品调研.md) —— 同类 App 的特色、槽点与本项目的取舍
 - [数据来源](data/README.md) —— 每个文件从哪来、什么许可
 
 ## 📜 许可

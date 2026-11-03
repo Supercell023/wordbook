@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="词书">
+  <title>词书 · 背单词（maskable）</title>
+  <!-- 满幅底色，图形全部收在中央 80% 安全区内，被圆形/方形裁切都不会切到书 -->
+  <rect width="512" height="512" fill="#f4efe4"/>
+  <rect x="140" y="146" width="232" height="220" rx="16" ry="16" fill="#2d4a74"/>
+  <rect x="153" y="163" width="33" height="186" rx="14" ry="14" fill="#24405f"/>
+  <rect x="210" y="188" width="106" height="20" rx="10" ry="10" fill="#fffdf7"/>
+  <rect x="210" y="232" width="106" height="20" rx="10" ry="10" fill="#fffdf7"/>
+  <rect x="210" y="276" width="106" height="20" rx="10" ry="10" fill="#fffdf7"/>
+  <rect x="326" y="146" width="43" height="95" rx="2" ry="2" fill="#c08a2e"/>
+</svg>
