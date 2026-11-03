@@ -63,14 +63,16 @@ sync() {
   fi
 
   # 3) 四份目录：vocab.html + manifest.json + sw.js + icons/
-  local d
+  #    SW 缓存名用构建哈希，页面一变就自动换缓存并提示刷新。
+  local d ver
+  ver="$(sha256sum "$html" | cut -c1-12)"
   mkdir -p "$DIST/icons" "$PUBLIC/icons" "$ANDROID/icons" "$IOSWWW/icons"
   for d in "${TARGETS[@]}"; do
     if [ "$d" != "$DIST" ]; then
       cp "$html" "$d/vocab.html"
     fi
     cp "$WEB/manifest.json"    "$d/manifest.json"
-    cp "$WEB/sw.js"            "$d/sw.js"
+    sed "s/__SW_VERSION__/$ver/g" "$WEB/sw.js" > "$d/sw.js"
     cp "$WEB"/icons/*.png      "$d/icons/"
     cp "$WEB"/icons/*.svg      "$d/icons/"
   done
@@ -122,6 +124,9 @@ for d in dirs:
     for f in ("vocab.html", "manifest.json", "sw.js"):
         if not os.path.isfile(os.path.join(base, f)):
             problems.append("%s 缺少 %s" % (d, f))
+    swp = os.path.join(base, "sw.js")
+    if os.path.isfile(swp) and "__SW_VERSION__" in open(swp, encoding="utf-8").read():
+        problems.append("%s sw.js 未写入构建版本（请跑 ./build.sh sync）" % d)
     for ic in icons:
         p = os.path.join(base, ic["src"])
         if not os.path.isfile(p):

@@ -1956,15 +1956,26 @@ window.addEventListener('pagehide', save);
 
 /* ---------- PWA（iOS/安卓 添加到主屏幕后离线可用） ---------- */
 if ((location.protocol === 'http:' || location.protocol === 'https:') && 'serviceWorker' in navigator && !NATIVE_TTS) {
+  const markUpdate = () => {
+    if (updateReady) return;
+    updateReady = true;
+    if (view === 'home') render();
+    toast('新版本已就绪，点顶部提示刷新');
+  };
   navigator.serviceWorker.addEventListener('message', e => {
-    if (e.data && e.data.type === 'WB_UPDATED') {
-      updateReady = true;
-      if (view === 'home') render();
-      toast('新版本已就绪，点顶部提示刷新');
-    }
+    if (e.data && e.data.type === 'WB_UPDATED') markUpdate();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      if (reg.waiting && navigator.serviceWorker.controller) markUpdate();
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) markUpdate();
+        });
+      });
+    }).catch(() => {});
   });
 }
 </script>
