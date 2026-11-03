@@ -34,7 +34,7 @@ public class MainActivity extends Activity {
         }
         wv.setWebViewClient(new WebViewClient());
         wv.setWebChromeClient(new WebChromeClient());
-        wv.setBackgroundColor(0xFFEEF1F6);
+        wv.setBackgroundColor(0xFFF4EFE4);
 
         // WebView 里没有可用的 Web Speech API，用系统 TextToSpeech 桥接
         tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {

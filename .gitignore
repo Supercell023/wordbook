@@ -22,6 +22,7 @@ server/public/icons/
 android/assets/vocab.html
 android/build/
 android/*.apk
+!android/wordbook.apk
 android/*.keystore
 
 # iOS 生成资源
