@@ -462,8 +462,6 @@ html[data-theme="dark"][data-contrast="high"]{--sub:#c9d3e1;--line:#40506a}
 }
 
 /* 词库选择：首页只展示常用项，其余在设置里开启 */
-.chips-note{font-size:12px;color:var(--sub);margin:-4px 2px 10px;display:flex;gap:6px;align-items:center}
-.chips-note button{border:0;background:none;color:var(--accent);font:inherit;padding:2px 0;cursor:pointer}
 .libpick{display:flex;flex-wrap:wrap;gap:6px}
 .lbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 11px;font:inherit;font-size:12px;cursor:pointer}
 .lbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -1109,7 +1107,6 @@ const sessKind = a => a.kind === 'learn' ? '学习中' : a.kind === 'group' ? '�
 VIEWS.home = function () {
   const st = rangeStats();
   const vr = visibleRanges();
-  const hiddenLibs = RANGES.filter(r => r.k && !vr.some(x => x.k === r.k)).length;
   const due = dueIds().length;
   const pct = pctOf(st.learned, st.pool);
   const acts = S.actives.slice().sort((a, b) => b.act - a.act);
@@ -1161,7 +1158,6 @@ VIEWS.home = function () {
   </div>
   ${intro}
   <div class="chips">${vr.map(r => `<button class="chip ${S.range === r.k ? 'on' : ''}" data-act="range" data-id="${r.k}">${r.n}</button>`).join('')}</div>
-  ${hiddenLibs ? `<div class="chips-note">还有 ${hiddenLibs} 个词库未显示 · <button data-act="settings">在设置里勾选</button></div>` : ''}
   <div class="actions">${primary}${sub}</div>
   ${due ? `<button class="cta ghost" data-act="dueReview" style="margin-bottom:10px"><span>🔁 今日复习</span><small>${due} 个词到期</small></button>` : ''}
   ${others ? `<div class="blist" style="flex:none;margin-top:10px">${others}</div>` : ''}

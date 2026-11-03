@@ -303,6 +303,7 @@ console.log('\n[12] 音节划分 / 同族词 / 新增词库');
   ok(sheetNode === doc.querySelector('.sheet'), '设置原地刷新，不重建弹层');
   ok(doc.querySelector('[data-s="lib"][data-v="64"]').classList.contains('on'), '沪中考开关高亮');
   ok(!!doc.querySelector('.chip[data-id="64"]'), '首页出现沪中考按钮');
+  ok(!doc.querySelector('.chips-note'), '首页不再显示隐藏词库提示');
   ev('closeModal(); 1');
   clk('range', 256);
   ok(hero().endsWith('/4770'), '考研词库 4770 词');
