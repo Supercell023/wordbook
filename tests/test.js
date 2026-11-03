@@ -345,9 +345,17 @@ console.log('\n[13] 放弃未学完的组不跳号');
 {
   const d = makeDom(); const w = d.window, doc = w.document;
   const clk = (act) => { const el = doc.querySelector(`[data-act="${act}"]`); if (!el) throw new Error('missing ' + act); el.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); };
+  let confirmed = 0; w.confirm = () => { confirmed++; return true; };
   clk('newgroup');
   ok(doc.body.textContent.includes('第 1 组'), '预览页显示第 1 组');
   clk('dropSession');
+  ok(!!doc.querySelector('.sheet') && doc.body.textContent.includes('离开这一组？'), '退出显示应用内确认卡');
+  ok(confirmed === 0, '不再调用原生 confirm');
+  clk('quit');
+  ok(doc.body.textContent.includes('继续第 1 组'), '先退出保留本组');
+  clk('resume');
+  clk('dropSession');
+  clk('dropConfirm');
   ok(doc.body.textContent.includes('开始第 1 组'), '放弃后首页仍从第 1 组开始（实际：' + (doc.body.textContent.match(/开始第 \d+ 组/) || ['无'])[0] + '）');
   clk('newgroup');
   clk('startQuiz');

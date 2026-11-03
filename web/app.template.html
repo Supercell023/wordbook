@@ -177,6 +177,7 @@ h1{font-size:30px;margin:4px 0 0;letter-spacing:-.02em;font-weight:800}
   display:flex;align-items:center;justify-content:center;margin-bottom:9px}
 .sheet .s-btn.danger{color:var(--bad)}
 .sheet .tip{font-size:11px;color:var(--sub);line-height:1.7;margin:12px 2px 0}
+.sheet .exit-tip{font-size:13px;color:var(--sub);line-height:1.7;margin:0 2px 16px}
 .srow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;font-size:13px}
 .seg{display:flex;gap:6px}
 .sbtn{min-width:40px;height:34px;padding:0 10px;border-radius:10px;background:var(--bg);font-size:13px;font-weight:600;color:var(--sub)}
@@ -1924,20 +1925,33 @@ const ACTIONS = {
     const s = S.actives.find(a => a.sid === id);
     if (!s) return go('home');
     const studied = s.kind === 'learn' && (s.mastered || []).length;
-    const msg = studied
-      ? `放弃这一组？本组已学的 ${s.mastered.length} 个词会退回词库，剩下 ${s.ids.length - s.mastered.length} 个词也回到词库。`
-      : `放弃这一组？这 ${s.ids.length} 个词会回到词库。`;
-    if (!window.confirm(msg)) return;
-    revertLearn(s);
-    S.actives = S.actives.filter(a => a.sid !== id);
-    if (S.cur === id) S.cur = null;
-    save(); go('home');
+    const detail = studied
+      ? `本组已学的 ${s.mastered.length} 个词会退回词库，剩下 ${s.ids.length - s.mastered.length} 个词也会回到词库。`
+      : `这 ${s.ids.length} 个词会回到词库。`;
+    openModal(`
+      <button class="sheet-x sheet-x-corner" data-act="closeSheet" aria-label="关闭">✕</button>
+      <h3>离开这一组？</h3>
+      <div class="exit-tip">先退出不会丢词，本组会留在首页。选择放弃，${esc(detail)}</div>
+      <button class="s-btn" data-act="quit">先退出，保留本组</button>
+      <button class="s-btn danger" data-act="dropConfirm" data-id="${s.sid}">放弃本组，词退回词库</button>
+      <button class="s-btn" data-act="closeSheet">继续学习</button>
+    `);
+  },
+  dropConfirm(id) {
+    const s = S.actives.find(a => String(a.sid) === String(id));
+    if (s) {
+      revertLearn(s);
+      S.actives = S.actives.filter(a => a.sid !== s.sid);
+      if (S.cur === s.sid) S.cur = null;
+      save();
+    }
+    closeModal(false); go('home'); toast('已放弃这一组');
   },
   startQuiz() { const s = cur(); if (!s) return go('home'); s.seen = true; save(); go('quiz'); },
   peek() { const s = cur(); if (!s || s.fb) return; s.peek = !s.peek; render(); },
   yes() { answer(true); },
   no() { answer(false); },
-  quit() { save(); go('home'); },
+  quit() { closeModal(false); save(); go('home'); },
   book() { if (!S.groups.length) return toast('还没有已背的单词'); go('book'); },
   star(id) { id = Number(id); if (S.star[id]) delete S.star[id]; else S.star[id] = Date.now(); save(); render(); },
   unstar(id) { delete S.star[Number(id)]; save(); render(); },
