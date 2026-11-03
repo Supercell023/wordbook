@@ -468,6 +468,12 @@ html[data-theme="dark"][data-contrast="high"]{--sub:#c9d3e1;--line:#40506a}
 .lbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 11px;font:inherit;font-size:12px;cursor:pointer}
 .lbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
 html[data-theme="dark"] .lbtn.on{color:#0e1117}
+
+.rangepick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.rbtn{padding:9px 4px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+.rbtn.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+html[data-theme=dark] .rbtn{background:#171c27;border-color:#2a3242;color:#e7e2d6}
+html[data-theme=dark] .rbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
 </style>
 </head>
 <body>
@@ -535,12 +541,6 @@ const RANGES = [
   { k: 16, n: '雅思' }, { k: 32, n: '托福' }, { k: 64, n: '沪中考' }, { k: 128, n: '沪高考' }
 ];
 const RANGE_NAME = k => (RANGES.find(r => r.k === k) || RANGES[0]).n;
-const DEFAULT_LIBS = [4, 8, 256, 512, 1024, 2048];
-function visibleLibs() {
-  const a = (Array.isArray(S.cfg.libs) && S.cfg.libs.length) ? S.cfg.libs : DEFAULT_LIBS;
-  return a.filter((k, i) => k && RANGES.some(r => r.k === k) && a.indexOf(k) === i);
-}
-function visibleRanges() { const on = new Set(visibleLibs()); return RANGES.filter(r => r.k === 0 || on.has(r.k)); }
 const POOLS = {};
 RANGES.forEach(r => {
   POOLS[r.k] = r.k === 0 ? WORDS.map(w => w.id) : WORDS.filter(w => (w.mask & r.k)).map(w => w.id);
@@ -691,7 +691,7 @@ function defaults() {
   return {
     v: 2, range: 0, seq: 0, learned: {}, groups: [], actives: [], cur: null, lastDone: null,
     days: {}, star: {}, wrong: {}, searchHist: [], fxDay: '',
-    cfg: { maxActive: 3, maxHist: 5, recycleAt: 2, diff: 'balanced', autoSay: 1, goal: 20, autoStar: 1, theme: 'auto', fx: 1, fs: 'md', contrast: 'normal', introOff: 0, hd: 1, accent: 'us', rate: 0.9, libs: DEFAULT_LIBS.slice() },
+    cfg: { maxActive: 3, maxHist: 5, recycleAt: 2, diff: 'balanced', autoSay: 1, goal: 20, autoStar: 1, theme: 'auto', fx: 1, fs: 'md', contrast: 'normal', introOff: 0, hd: 1, accent: 'us', rate: 0.9 },
     sync: { url: '', token: '', name: '', lastHash: '', lastAt: 0, inbox: [] }
   };
 }
@@ -1102,8 +1102,6 @@ const sessKind = a => a.kind === 'learn' ? '学习中' : a.kind === 'group' ? '�
 
 VIEWS.home = function () {
   const st = rangeStats();
-  const vr = visibleRanges();
-  const hiddenLibs = RANGES.filter(r => r.k && !vr.some(x => x.k === r.k)).length;
   const due = dueIds().length;
   const pct = pctOf(st.learned, st.pool);
   const acts = S.actives.slice().sort((a, b) => b.act - a.act);
@@ -1114,9 +1112,9 @@ VIEWS.home = function () {
   const wrongN = wrongIds().length;
   const intro = (!S.cfg.introOff && !S.seq && !Object.keys(S.learned).length) ? `
     <div class="card intro">
-      <div class="intro-t">第一次用？三步开始</div>
-      <div class="intro-s">① 选一个词库　② 开始第 1 组，先熟悉 20 词　③ 轻点卡片看释义，会的点“掌握”</div>
-      <div class="intro-a"><button class="more-btn" data-act="hideIntro">知道了</button></div>
+      <div class="intro-t">先选一个词库</div>
+      <div class="intro-s">点右上角 ⚙ 打开设置，在「当前词库」里选择；默认是全部词库。选好后开始第 1 组，先熟悉 20 词。</div>
+      <div class="intro-a"><button class="more-btn" data-act="settings">去选择</button> <button class="more-btn" data-act="hideIntro">知道了</button></div>
     </div>` : '';
   const primary = head
     ? `<button class="cta" data-act="resume" data-id="${head.sid}"><span>继续${sessName(head)}</span><small>还剩 ${head.queue.length} 词</small></button>`
@@ -1154,8 +1152,6 @@ VIEWS.home = function () {
     ${S.fxDay === todayKey() ? '<div class="reward">✦ 今日奖励已领取</div>' : ''}
   </div>
   ${intro}
-  <div class="chips">${vr.map(r => `<button class="chip ${S.range === r.k ? 'on' : ''}" data-act="range" data-id="${r.k}">${r.n}</button>`).join('')}</div>
-  ${hiddenLibs ? `<div class="chips-note">还有 ${hiddenLibs} 个词库未显示 · <button data-act="settings">在设置里选择</button></div>` : ''}
   <div class="actions">${primary}${sub}</div>
   ${due ? `<button class="cta ghost" data-act="dueReview" style="margin-bottom:10px"><span>🔁 今日复习</span><small>${due} 个词到期</small></button>` : ''}
   ${others ? `<div class="blist" style="flex:none;margin-top:10px">${others}</div>` : ''}
@@ -1541,12 +1537,18 @@ function render() {
     }
   }
 }
+function restoreScroll(y) {
+  if (!(y > 0) || /jsdom/i.test(navigator.userAgent)) return;
+  requestAnimationFrame(() => { try { window.scrollTo(0, y); } catch (_) {} });
+}
 function go(v, c) { view = v; ctx = c || {}; lastQId = null; render(); }
 
 /* ---------- 弹层 ---------- */
-let modalEl = null;
+let modalEl = null, modalScrollY = 0;
 function openModal(html) {
-  closeModal();
+  const y = modalEl ? modalScrollY : (window.scrollY || 0);
+  closeModal(false);
+  modalScrollY = y;
   modalEl = document.createElement('div');
   modalEl.className = 'sheet-bg';
   modalEl.innerHTML = `<div class="sheet"><div class="sheet-grab" aria-hidden="true"></div>${html}</div>`;
@@ -1554,9 +1556,12 @@ function openModal(html) {
   document.body.appendChild(modalEl);
   document.documentElement.classList.add('sheet-open');
 }
-function closeModal() {
+function closeModal(restore = true) {
   if (modalEl) { modalEl.remove(); modalEl = null; }
   document.documentElement.classList.remove('sheet-open');
+  const y = modalScrollY;
+  modalScrollY = 0;
+  if (restore) restoreScroll(y);
 }
 
 /* ---------- 词卡 ---------- */
@@ -1784,16 +1789,15 @@ const ACTIONS = {
   home() { go('home'); },
   settings() {
     const c = S.cfg;
-    const libset = new Set(visibleLibs());
     const seg = (key, vals) => `<div class="seg">${vals.map(v => `<button class="sbtn ${String(c[key]) === String(v[0]) ? 'on' : ''}" data-s="${key}" data-v="${v[0]}">${v[1]}</button>`).join('')}</div>`;
     openModal(`
     <button class="sheet-x sheet-x-corner" data-act="closeSheet" aria-label="关闭设置">✕</button>
     <h3>设置</h3>
     <div class="srow"><span>外观</span>${seg('theme', [['auto', '跟随系统'], ['light', '浅色'], ['dark', '深色']])}</div>
     <div class="srow" style="display:block">
-      <div style="margin-bottom:8px">首页显示词库</div>
-      <div class="libpick">${RANGES.filter(r => r.k).map(r => `<button class="lbtn ${libset.has(r.k) ? 'on' : ''}" data-s="lib" data-v="${r.k}">${r.n}</button>`).join('')}</div>
-      <div class="tip" style="margin-top:7px">只影响首页按钮，不影响已学记录；不选就只显示「全部」。</div>
+      <div style="margin-bottom:8px">当前词库</div>
+      <div class="rangepick">${RANGES.map(r => `<button class="rbtn ${S.range === r.k ? 'on' : ''}" data-s="range" data-v="${r.k}">${r.n}</button>`).join('')}</div>
+      <div class="tip" style="margin-top:7px">选择后立即生效；首页不再显示词库按钮，随时可以从这里切换。</div>
     </div>
     <div class="srow"><span>字号</span>${seg('fs', [['md', '标准'], ['lg', '大'], ['xl', '特大']])}</div>
     <div class="srow"><span>对比度</span>${seg('contrast', [['normal', '标准'], ['high', '高对比']])}</div>
@@ -1831,7 +1835,7 @@ const ACTIONS = {
     <button class="s-btn danger" data-s="reset">清空全部学习数据</button>
     <div class="tip">词库 ${N} 词 · demo 0.5<br>未完成的组超过上限时，最久没动的那组会作废，它的词回到词库。</div>`);
   },
-  range(id) { S.range = Number(id); save(); go('home'); },
+  range(id) { const y = window.scrollY || 0; S.range = Number(id); S.cfg.introOff = 1; save(); go('home'); restoreScroll(y); },
   search() { go('search', { q: '' }); setTimeout(() => { const i = document.getElementById('searchIn'); if (i) i.focus(); }, 80); },
   themeQuick() {
     const order = ['auto', 'light', 'dark'], cur = S.cfg.theme || 'auto';
@@ -2010,12 +2014,10 @@ document.addEventListener('click', e => {
   if (k === 'diff') { S.cfg.diff = b.dataset.v; save(); ACTIONS.settings(); return; }
   if (k === 'theme') { S.cfg.theme = b.dataset.v; save(); applyTheme(); ACTIONS.settings(); return; }
   if (k === 'fs' || k === 'contrast') { S.cfg[k] = b.dataset.v; save(); applyDisplay(); ACTIONS.settings(); return; }
-  if (k === 'lib') {
-    const v = Number(b.dataset.v), cur = visibleLibs().slice();
-    const next = cur.includes(v) ? cur.filter(x => x !== v) : cur.concat(v);
-    S.cfg.libs = next.sort((x, y) => x - y);
-    if (S.range && !S.cfg.libs.includes(S.range)) S.range = 0;
-    save(); render(); ACTIONS.settings(); return;
+  if (k === 'range') {
+    const y = modalScrollY || window.scrollY || 0;
+    S.range = Number(b.dataset.v); S.cfg.introOff = 1;
+    save(); closeModal(false); go('home'); restoreScroll(y); return;
   }
   if (k === 'fx') { S.cfg.fx = Number(b.dataset.v); save(); ACTIONS.settings(); return; }
   if (k === 'hd') { S.cfg.hd = Number(b.dataset.v); save(); ACTIONS.settings(); toast(S.cfg.hd ? '高清发音：联网，优先有道' : '已切回系统语音'); return; }
@@ -2032,7 +2034,7 @@ document.addEventListener('click', e => {
   if (k === 'export') doExport();
   else if (k === 'import') doImport();
   else if (k === 'reset') {
-    if (window.confirm('确定清空所有学习记录？此操作不可恢复。')) { S = defaults(); save(); closeModal(); go('home'); toast('已清空'); }
+    if (window.confirm('确定清空所有学习记录？此操作不可恢复。')) { S = defaults(); save(); closeModal(false); go('home'); toast('已清空'); }
   }
 });
 
@@ -2061,7 +2063,7 @@ function doImport() {
         if (!d || typeof d !== 'object' || !('learned' in d)) throw new Error('格式不对');
         S = migrate(d);
         S.cfg = Object.assign(defaults().cfg, d.cfg || {});
-        save(); applyTheme(); closeModal(); go('home'); toast('已导入备份');
+        save(); applyTheme(); closeModal(false); go('home'); toast('已导入备份');
       } catch (e) { toast('导入失败：' + e.message); }
     };
     r.readAsText(f);

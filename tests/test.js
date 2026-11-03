@@ -36,6 +36,7 @@ function ok(cond, msg) {
   else { fail++; console.log('  ✗ ' + msg); }
 }
 function click(act, id) {
+  if (act === 'range') { win.eval(`ACTIONS.range(${Number(id)})`); return; }
   const list = [...doc.querySelectorAll(`[data-act="${act}"]`)];
   const el = list.find(e => id === undefined || e.dataset.id === String(id));
   if (!el) throw new Error(`找不到元素 [data-act=${act}] id=${id}`);
@@ -54,7 +55,8 @@ function finishYes(limit) {
 
 console.log('\n[1] 首页初始状态');
 ok(text('h1').includes('词书'), '标题渲染');
-ok(count('.chip') === 7, '默认显示 7 个常用词库入口');
+ok(count('.chip') === 0, '首页不再显示词库按钮');
+ok(!!doc.querySelector('.intro'), '首次使用提示选择词库');
 ok(heroNum() === '0/18337', '全部词库 12194 词，已学 0（实际 ' + heroNum() + '）');
 ok(doc.body.textContent.includes('开始第 1 组'), '首页显示开始第 1 组');
 ok(count('.arow') === 0, '没有未完成组');
@@ -172,7 +174,6 @@ ok(pv.includes(w1), '回炉词进入新组');
 click('startQuiz'); click('quit');
 
 console.log('\n[7] 按词库统计');
-win.eval('S.cfg.libs.push(1); save(); render(); 1');
 click('range', 1);
 ok(heroNum().includes('/1228'), '中考词库 1228 词（实际 ' + heroNum() + '）');
 ok(text('.hero .lb').includes('中考'), '标题显示中考词库');
@@ -228,11 +229,11 @@ console.log('\n[11] 发音与例句');
   const d3 = makeDom();
   const w3 = d3.window, doc3 = w3.document;
   const click3 = (act, id) => {
+    if (act === 'range') { w3.eval(`ACTIONS.range(${Number(id)})`); return; }
     const el = [...doc3.querySelectorAll(`[data-act="${act}"]`)].find(e => id === undefined || e.dataset.id === String(id));
     if (!el) throw new Error(`找不到 [data-act=${act}]`);
     el.dispatchEvent(new w3.MouseEvent('click', { bubbles: true }));
   };
-  w3.eval('S.cfg.libs.push(1); save(); render(); 1');
   click3('range', 1);
   click3('newgroup');
   const rows = [...doc3.querySelectorAll('.pvrow')];
@@ -275,38 +276,44 @@ console.log('\n[12] 音节划分 / 同族词 / 新增词库');
   const d = makeDom();
   const w = d.window, doc = w.document;
   const clk = (act, id) => {
+    if (act === 'range') { w.eval(`ACTIONS.range(${Number(id)})`); return; }
     const el = [...doc.querySelectorAll(`[data-act="${act}"]`)].find(e => id === undefined || e.dataset.id === String(id));
     el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
   };
   const ev = js => w.eval(js);
-  const chips = () => [...doc.querySelectorAll('.chip')].map(e => e.textContent).join();
-  ok(chips().includes('考研') && chips().includes('专四') && chips().includes('专八') && chips().includes('CATTI'), '有考研/专四/专八/CATTI 词库');
-  ok(!chips().includes('沪中考'), '沪中考默认收起');
-  ok(doc.body.textContent.includes('个词库未显示'), '提示可在设置里开启更多词库');
+  const hero = () => doc.querySelector('.hero .num').textContent.replace(/\s+/g, '');
+  const pick = v => {
+    clk('settings');
+    const b = [...doc.querySelectorAll('[data-s="range"]')].find(e => e.dataset.v === String(v));
+    b.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  };
+  ok(count('.chip') === 0, '首页没有词库按钮');
+  ok(!!doc.querySelector('.intro'), '首次使用有词库提示');
   clk('settings');
-  const lib = [...doc.querySelectorAll('[data-s="lib"]')].find(e => e.dataset.v === '64');
-  ok(!!lib, '设置里有沪中考显示开关');
-  lib.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-  ok([...doc.querySelectorAll('[data-s="lib"]')].find(e => e.dataset.v === '64').classList.contains('on'), '开启沪中考后按钮高亮');
+  ok(doc.querySelectorAll('[data-s="range"]').length === 13, '设置里列出全部 13 个词库选项');
+  ok(doc.querySelector('[data-s="range"][data-v="0"]').classList.contains('on'), '默认选中全部词库');
   ev('closeModal(); go("home"); 1');
-  ok(chips().includes('沪中考'), '设置开启后首页出现沪中考');
-  clk('range', 256);
-  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/4770'), '考研词库 4770 词');
-  clk('range', 512);
-  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/3998'), '专四词库 3998 词');
-  clk('range', 1024);
-  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/11912'), '专八词库 11912 词');
-  clk('range', 2048);
-  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/3104'), 'CATTI 词库 3104 条');
-  ev('S.cfg.libs.push(16,32,128); save(); render(); 1');
+  pick(256);
+  ok(hero().endsWith('/4770'), '考研词库 4770 词');
+  ok(!doc.querySelector('.intro'), '选过词库后首页提示消失');
+  ok(count('.chip') === 0, '选完仍不在首页显示词库按钮');
+  pick(512);
+  ok(hero().endsWith('/3998'), '专四词库 3998 词');
+  pick(1024);
+  ok(hero().endsWith('/11912'), '专八词库 11912 词');
+  pick(2048);
+  ok(hero().endsWith('/3104'), 'CATTI 词库 3104 条');
+  const saved = JSON.parse(w.localStorage.getItem('wordbook.v1'));
+  const d2 = makeDom(saved), doc2 = d2.window.document;
+  ok(!doc2.querySelector('.intro') && doc2.querySelectorAll('.chip').length === 0, '重新打开后不再提示词库选择');
   clk('range', 16);
-  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/4946'), '雅思词库 4946 词');
+  ok(hero().endsWith('/4946'), '雅思词库 4946 词');
   clk('range', 32);
-  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/6949'), '托福词库 6949 词');
+  ok(hero().endsWith('/6949'), '托福词库 6949 词');
   clk('range', 64);
-  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/1610'), '沪中考词库 1610 词');
+  ok(hero().endsWith('/1610'), '沪中考词库 1610 词');
   clk('range', 128);
-  ok(doc.querySelector('.hero .num').textContent.replace(/\s+/g, '').endsWith('/6135'), '沪高考词库 6135 词');
+  ok(hero().endsWith('/6135'), '沪高考词库 6135 词');
   clk('range', 0);
   const ai = ev("WORDS.findIndex(x=>x.w.toLowerCase()==='appear')");
   ok(ai >= 0, '词库里有 appear');

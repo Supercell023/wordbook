@@ -26,8 +26,8 @@
 <img src="docs/screenshots/shot-fx.png" width="44%" alt="完成奖励">
 <br><sub>暗夜模式 · 完成奖励</sub>
 <br>
-<img src="docs/screenshots/shot-libs.png" width="44%" alt="设置里选择首页显示哪些词库">
-<br><sub>词库入口可以自己增减</sub>
+<img src="docs/screenshots/shot-libs.png" width="44%" alt="设置里切换当前词库">
+<br><sub>右上角齿轮里切换词库</sub>
 <br>
 <img src="docs/screenshots/shot-listen.png" width="30%" alt="听音选义">
 <img src="docs/screenshots/shot-cloze.png" width="30%" alt="例句填空">
@@ -42,7 +42,7 @@
 
 | | 市面上的背单词软件 | 词书 |
 |---|---|---|
-| 词库 | 平台定，改不了 | **自己选**：中考/高考/四级/六级/考研/专四/专八/CATTI/雅思/托福 + 上海两库，首页只放常看的 |
+| 词库 | 平台定，改不了 | **自己选**：中考/高考/四级/六级/考研/专四/专八/CATTI/雅思/托福 + 上海两库，设置里随时切换 |
 | 学习数据 | 存在别人服务器上 | **全在本地**，断网也能背，导出就是一份 JSON |
 | 分组 | 算法决定，你只能跟着走 | **一组 20 词，全部点「掌握」才算过**，不熟的本组重考 |
 | 复习 | 只能按它安排的来 | **按原组复习**，或**跨组随机重组 20 词** |
@@ -89,7 +89,7 @@
 
 ### ② 安卓安装包
 
-下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.11.0）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
+下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.11.1）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
 
 ### ③ 安装成 PWA（iPhone / Android 推荐）
 
@@ -123,7 +123,7 @@
 > 雅思、托福没有官方词表（ETS 和英国文化协会都没发布过），这里用的是社区整理版，来自 ECDICT 的考试标签。
 > 专四/专八用 Qwerty Learner 的社区词表；CATTI 用三级口译常用词汇整理版，很多是短语和术语，所以例句覆盖天然偏低。
 
-首页默认只放 7 个常用入口（全部/四级/六级/考研/专四/专八/CATTI），其余词库在「设置 → 首页显示词库」里自行增减，不选就只留「全部」。
+首页不再摆一排词库按钮：第一次使用会提示一次，之后从右上角 ⚙ →「当前词库」切换；只在设置里选，切换不影响已学记录。
 
 ## 🏗 架构
 
@@ -195,7 +195,7 @@ sudo bash server/deploy.sh --domain wb.example.com
 
 ## ✅ 测试
 
-- **194 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
+- **196 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
 - **布局检查**：用 Chromium 量每个页面的元素边界，保证 390px 手机宽度下没有横向溢出
 - **服务器测试**：34 项接口断言（激活码、去重、越权、伪造令牌、老师备注、作业回执、CSV 导出）
 
