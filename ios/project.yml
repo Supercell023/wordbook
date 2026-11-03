@@ -1,0 +1,28 @@
+name: WordBook
+options:
+  bundleIdPrefix: com.dsh
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+targets:
+  WordBook:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Resources/www
+        type: folder
+        buildPhase: resources
+    info:
+      path: Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dsh.wordbook
+        PRODUCT_NAME: 词书
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
