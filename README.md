@@ -6,9 +6,9 @@
 
 词库自己建 · 数据全在本地 · 服务器只帮你收作业
 
-[![词库](https://img.shields.io/badge/%E8%AF%8D%E5%BA%93-12%2C115%20%E8%AF%8D-2ea44f?style=for-the-badge)](https://github.com/Supercell023/wordbook)
+[![词库](https://img.shields.io/badge/%E8%AF%8D%E5%BA%93-18%2C337%20%E8%AF%8D-2ea44f?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![单文件](https://img.shields.io/badge/%E5%8D%95%E6%96%87%E4%BB%B6-7.2MB-1f6feb?style=for-the-badge)](https://github.com/Supercell023/wordbook/releases)
-[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-186%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
+[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-200%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![CI](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml/badge.svg)](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml)
 [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Android%20%C2%B7%20iOS%20%C2%B7%20Web-8957e5?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-MIT-yellow?style=for-the-badge)](LICENSE)
@@ -26,8 +26,8 @@
 <img src="docs/screenshots/shot-fx.png" width="44%" alt="完成奖励">
 <br><sub>暗夜模式 · 完成奖励</sub>
 <br>
-<img src="docs/screenshots/shot-libs.png" width="44%" alt="设置里切换当前词库">
-<br><sub>右上角齿轮里切换词库</sub>
+<img src="docs/screenshots/shot-libs.png" width="44%" alt="设置里勾选首页词库">
+<br><sub>设置里勾选要放在首页的词库</sub>
 <br>
 <img src="docs/screenshots/shot-listen.png" width="30%" alt="听音选义">
 <img src="docs/screenshots/shot-cloze.png" width="30%" alt="例句填空">
@@ -89,7 +89,7 @@
 
 ### ② 安卓安装包
 
-下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.11.1）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
+下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.11.2）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
 
 ### ③ 安装成 PWA（iPhone / Android 推荐）
 
@@ -123,7 +123,7 @@
 > 雅思、托福没有官方词表（ETS 和英国文化协会都没发布过），这里用的是社区整理版，来自 ECDICT 的考试标签。
 > 专四/专八用 Qwerty Learner 的社区词表；CATTI 用三级口译常用词汇整理版，很多是短语和术语，所以例句覆盖天然偏低。
 
-首页不再摆一排词库按钮：第一次使用会提示一次，之后从右上角 ⚙ →「当前词库」切换；只在设置里选，切换不影响已学记录。
+首页只摆你勾选的几个词库按钮（默认四级/六级/考研/专四/专八/CATTI）。第一次使用会提示一次；点右上角 ⚙ →「首页词库」可以增减，设置不会自动关闭。点首页按钮只切换范围，停在同一页、不跳回顶部，也不影响已学记录。
 
 ## 🏗 架构
 
@@ -195,7 +195,7 @@ sudo bash server/deploy.sh --domain wb.example.com
 
 ## ✅ 测试
 
-- **196 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
+- **200 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
 - **布局检查**：用 Chromium 量每个页面的元素边界，保证 390px 手机宽度下没有横向溢出
 - **服务器测试**：34 项接口断言（激活码、去重、越权、伪造令牌、老师备注、作业回执、CSV 导出）
 

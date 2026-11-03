@@ -36,7 +36,11 @@ function ok(cond, msg) {
   else { fail++; console.log('  ✗ ' + msg); }
 }
 function click(act, id) {
-  if (act === 'range') { win.eval(`ACTIONS.range(${Number(id)})`); return; }
+  if (act === 'range') {
+    const chip = doc.querySelector(`.chip[data-id="${Number(id)}"]`);
+    if (chip) { chip.dispatchEvent(new win.MouseEvent('click', { bubbles: true })); return; }
+    win.eval(`ACTIONS.range(${Number(id)})`); return;
+  }
   const list = [...doc.querySelectorAll(`[data-act="${act}"]`)];
   const el = list.find(e => id === undefined || e.dataset.id === String(id));
   if (!el) throw new Error(`找不到元素 [data-act=${act}] id=${id}`);
@@ -55,7 +59,7 @@ function finishYes(limit) {
 
 console.log('\n[1] 首页初始状态');
 ok(text('h1').includes('词书'), '标题渲染');
-ok(count('.chip') === 0, '首页不再显示词库按钮');
+ok(count('.chip') === 7, '首页默认显示 7 个词库按钮');
 ok(!!doc.querySelector('.intro'), '首次使用提示选择词库');
 ok(heroNum() === '0/18337', '全部词库 12194 词，已学 0（实际 ' + heroNum() + '）');
 ok(doc.body.textContent.includes('开始第 1 组'), '首页显示开始第 1 组');
@@ -276,36 +280,38 @@ console.log('\n[12] 音节划分 / 同族词 / 新增词库');
   const d = makeDom();
   const w = d.window, doc = w.document;
   const clk = (act, id) => {
-    if (act === 'range') { w.eval(`ACTIONS.range(${Number(id)})`); return; }
+    if (act === 'range') {
+      const chip = doc.querySelector(`.chip[data-id="${Number(id)}"]`);
+      if (chip) { chip.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); return; }
+      w.eval(`ACTIONS.range(${Number(id)})`); return;
+    }
     const el = [...doc.querySelectorAll(`[data-act="${act}"]`)].find(e => id === undefined || e.dataset.id === String(id));
     el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
   };
   const ev = js => w.eval(js);
   const hero = () => doc.querySelector('.hero .num').textContent.replace(/\s+/g, '');
-  const pick = v => {
-    clk('settings');
-    const b = [...doc.querySelectorAll('[data-s="range"]')].find(e => e.dataset.v === String(v));
-    b.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-  };
-  ok(count('.chip') === 0, '首页没有词库按钮');
+  const chips = () => [...doc.querySelectorAll('.chip')].map(e => e.textContent).join(',');
+  ok(chips().includes('考研') && chips().includes('专四') && chips().includes('专八') && chips().includes('CATTI'), '首页有考研/专四/专八/CATTI');
+  ok(!chips().includes('沪中考'), '沪中考默认不显示');
   ok(!!doc.querySelector('.intro'), '首次使用有词库提示');
   clk('settings');
-  ok(doc.querySelectorAll('[data-s="range"]').length === 13, '设置里列出全部 13 个词库选项');
-  ok(doc.querySelector('[data-s="range"][data-v="0"]').classList.contains('on'), '默认选中全部词库');
-  ev('closeModal(); go("home"); 1');
-  pick(256);
+  ok(doc.querySelectorAll('[data-s="lib"]').length === 12, '设置里列出 12 个首页词库开关');
+  const lib64 = doc.querySelector('[data-s="lib"][data-v="64"]');
+  lib64.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  ok(!!doc.querySelector('.sheet'), '勾选词库后设置仍打开，不跳回主页');
+  ok(doc.querySelector('[data-s="lib"][data-v="64"]').classList.contains('on'), '沪中考开关高亮');
+  ok(!!doc.querySelector('.chip[data-id="64"]'), '首页出现沪中考按钮');
+  ev('closeModal(); 1');
+  clk('range', 256);
   ok(hero().endsWith('/4770'), '考研词库 4770 词');
+  ok(ev('view') === 'home', '点首页按钮仍停留首页');
   ok(!doc.querySelector('.intro'), '选过词库后首页提示消失');
-  ok(count('.chip') === 0, '选完仍不在首页显示词库按钮');
-  pick(512);
+  clk('range', 512);
   ok(hero().endsWith('/3998'), '专四词库 3998 词');
-  pick(1024);
+  clk('range', 1024);
   ok(hero().endsWith('/11912'), '专八词库 11912 词');
-  pick(2048);
+  clk('range', 2048);
   ok(hero().endsWith('/3104'), 'CATTI 词库 3104 条');
-  const saved = JSON.parse(w.localStorage.getItem('wordbook.v1'));
-  const d2 = makeDom(saved), doc2 = d2.window.document;
-  ok(!doc2.querySelector('.intro') && doc2.querySelectorAll('.chip').length === 0, '重新打开后不再提示词库选择');
   clk('range', 16);
   ok(hero().endsWith('/4946'), '雅思词库 4946 词');
   clk('range', 32);
@@ -315,6 +321,10 @@ console.log('\n[12] 音节划分 / 同族词 / 新增词库');
   clk('range', 128);
   ok(hero().endsWith('/6135'), '沪高考词库 6135 词');
   clk('range', 0);
+  const saved = JSON.parse(w.localStorage.getItem('wordbook.v1'));
+  const d2 = makeDom(saved), doc2 = d2.window.document;
+  ok(!doc2.querySelector('.intro'), '重新打开后不再提示词库选择');
+  ok(doc2.querySelectorAll('.chip').length >= 7, '重新打开后首页仍显示已选词库');
   const ai = ev("WORDS.findIndex(x=>x.w.toLowerCase()==='appear')");
   ok(ai >= 0, '词库里有 appear');
   ok(ev(`WORDS[${ai}].syl`) === 'ap·pear', 'appear 音节为 ap·pear（实际 ' + ev(`WORDS[${ai}].syl`) + '）');
