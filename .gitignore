@@ -1,0 +1,33 @@
+# 大数据集：ECDICT 词库（66MB，按 data/README.md 自行下载）
+data/ecdict.csv
+data/*.csv
+
+# 运行时 / 构建中间产物
+__pycache__/
+*.pyc
+*.bak
+_tr_gen_*.py
+delta.txt
+node_modules/
+
+# 服务器私有数据（含老师密码、学生数据、密钥）
+server/data/*
+!server/data/.gitkeep
+server/public/vocab.html
+server/public/manifest.json
+server/public/sw.js
+server/public/icons/
+
+# Android 构建产物
+android/assets/vocab.html
+android/build/
+android/*.apk
+android/*.keystore
+
+# iOS 生成资源
+ios/Resources/www/vocab.html
+
+# 编辑器
+.vscode/
+.idea/
+.DS_Store

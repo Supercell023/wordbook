@@ -1,0 +1,6 @@
+# 构建词库与例句用到的 Python 依赖
+nltk>=3.8          # WordNet：同族词
+pyphen>=0.14       # 音节划分
+pypdf>=3.0         # 抽取上海中考词汇表 PDF
+opencc-python-reimplemented>=0.1  # 繁体→简体
+cmudict>=1.0       # 备用音节方案

@@ -1,0 +1,14 @@
+{
+  "name": "wordbook-tests",
+  "private": true,
+  "version": "1.0.0",
+  "description": "词书功能测试与布局检查",
+  "scripts": {
+    "test": "node test.js",
+    "layout": "node layout.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0",
+    "playwright-core": "^1.40.0"
+  }
+}
