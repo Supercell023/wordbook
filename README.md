@@ -8,7 +8,7 @@
 
 [![词库](https://img.shields.io/badge/%E8%AF%8D%E5%BA%93-18%2C337%20%E8%AF%8D-2ea44f?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![单文件](https://img.shields.io/badge/%E5%8D%95%E6%96%87%E4%BB%B6-7.2MB-1f6feb?style=for-the-badge)](https://github.com/Supercell023/wordbook/releases)
-[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-217%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
+[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-220%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![CI](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml/badge.svg)](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml)
 [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Android%20%C2%B7%20iOS%20%C2%B7%20Web-8957e5?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-MIT-yellow?style=for-the-badge)](LICENSE)
@@ -81,7 +81,7 @@
 
 界面用**宋体 + Times New Roman** 的书卷排版，支持**浅色 / 暗夜 / 跟随系统**、**字号（标准/大/特大）和高对比度**；复习完一天的任务会随机撒星星、花瓣或烟花。
 
-发音也做了升级：默认走**高清联网音色**（单词用有道、整句用 Google 翻译语音，只发送当前内容，可在设置里关），可切**美音/英音**和**慢/标准/快**；关掉后完全用系统 TTS，离线可用。整句高清需要能访问 Google，失败会自动回退系统语音；回退时优先选本地音色，断网也能读。
+发音也做了升级：默认走**高清联网音色**（单词用有道、整句用 Google 翻译语音，只发送当前内容，可在设置里关），可切**美音/英音**和**慢/标准/快**；关掉后完全用系统 TTS，离线可用。整句高清需要能访问 Google，失败会自动回退系统语音；回退时优先选本地音色，断网也能读。**iPhone 的 HTML 版会直接使用 Apple 系统语音**：iOS Safari 会拦截跨域音频和自动播放，强制走高清反而会静音；系统语音在第一次点击时同步触发，离线也能读。
 
 学完一组不是结束：**每个词有自己的复习间隔**（ease、连对次数、遗忘次数），答错的词会降间隔、优先回炉；首页能看到**未来 7 天到期预测**和**薄弱词**。练习除了认词，还有**听音选义**、**例句填空**、**拼写自测**；答错/拼错自动进**错题本**，按错误类型（认词/听音/填空/拼写）记录。词卡里可以看完全部义项、英英释义、词形、近反义和同族词，同族词之间能一层层点进去，再用「‹」返回上一个词；搜索会保留最近查过的词。
 
@@ -93,7 +93,7 @@
 
 ### ② 安卓安装包
 
-下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.12.0）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
+下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.12.1）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
 
 ### ③ 安装成 PWA（iPhone / Android 推荐）
 
@@ -199,7 +199,7 @@ sudo bash server/deploy.sh --domain wb.example.com
 
 ## ✅ 测试
 
-- **217 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
+- **220 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
 - **布局检查**：用 Chromium 量每个页面的元素边界，保证 390px 手机宽度下没有横向溢出
 - **服务器测试**：35 项接口断言（激活码、去重、越权、伪造令牌、老师备注、作业回执、CSV 导出）
 

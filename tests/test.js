@@ -714,5 +714,37 @@ console.log('\n[25] 三档评分与模糊词闭环');
   ok(!!doc.querySelector('.qword'), '模糊词可以开始认词复习');
 }
 
+
+console.log('\n[26] iOS 系统语音');
+{
+  const ios = new JSDOM(html, {
+    url: 'http://localhost/vocab.html',
+    runScripts: 'dangerously',
+    pretendToBeVisual: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    beforeParse(win) {
+      Object.defineProperty(win.navigator, 'userAgent', { value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
+      Object.defineProperty(win.navigator, 'maxTouchPoints', { value: 5 });
+      win.setTimeout = (fn) => { if (typeof fn === 'function') fn(); return 0; };
+      win.clearTimeout = () => {};
+      win.spoken = [];
+      win.audioUsed = false;
+      win.Audio = function () { win.audioUsed = true; return { play() { return Promise.resolve(); }, pause() {} }; };
+      win.SpeechSynthesisUtterance = function (t) { this.text = t; };
+      win.speechSynthesis = {
+        cancel() {}, resume() {},
+        speak(u) { win.spoken.push(u.text); },
+        getVoices() { return []; }
+      };
+    }
+  });
+  const iw = ios.window;
+  ok(iw.eval('IS_IOS') === true, '识别 iPhone Safari');
+  ok(iw.eval('HD_OK') === false, 'iOS 不启用网页高清音频');
+  iw.eval("speak('hello')");
+  ok(iw.spoken.indexOf('hello') >= 0 && !iw.audioUsed, 'iOS 直接调用系统语音且不发音频请求');
+  iw.close();
+}
+
 console.log(`\n结果：${pass} 通过，${fail} 失败`);
 process.exit(fail ? 1 : 0);

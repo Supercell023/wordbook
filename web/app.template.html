@@ -566,7 +566,13 @@ const TAG_DEF = [{ b: 1, n: '中考' }, { b: 2, n: '高考' }, { b: 4, n: '四�
 const NATIVE_TTS = !!(window.AndroidTTS && typeof window.AndroidTTS.speak === 'function');
 const WEB_TTS = 'speechSynthesis' in window;
 const TTS = NATIVE_TTS || WEB_TTS;
-const HD_OK = typeof Audio === 'function' && !/jsdom/i.test(navigator.userAgent || '');
+// iPadOS 13+ 的 Safari 会伪装成 Macintosh，需要 maxTouchPoints 一起判断。
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '')
+  || (/Macintosh/i.test(navigator.userAgent || '') && (navigator.maxTouchPoints || 0) > 1);
+// iOS Safari 对 <audio> 自动播放和跨域音频限制很严：高清请求失败后回退发生在
+// 用户手势之外，speechSynthesis 会被静默拦截，表现为“完全没有声音”。
+// 因此在 iOS 上直接走系统语音，保证第一次点击就能发声。
+const HD_OK = !IS_IOS && typeof Audio === 'function' && !/jsdom/i.test(navigator.userAgent || '');
 const openPv = new Set();
 let lastAutoSpoken = -1, lastChoiceSpoken = -1;
 let lastAccent = '', lastNativeRate = 0, hdAudio = null, hdSeq = 0;
@@ -688,11 +694,16 @@ function speakSystem(t) {
       toast('手机里没有英文语音包，建议在系统「文字转语音」里安装一个');
     }
     speechSynthesis.cancel();
+    // iOS 偶发停在 paused 状态，cancel 后 resume 一次更稳。
+    if (IS_IOS) { try { speechSynthesis.resume(); } catch (e) {} }
     const u = new SpeechSynthesisUtterance(t);
     u.lang = ttsAccent() === 'uk' ? 'en-GB' : 'en-US';
     const v = pickVoice(); if (v) u.voice = v;
     u.rate = ttsRate(); u.pitch = 1;
-    setTimeout(() => { try { speechSynthesis.speak(u); } catch (e) {} }, 40);
+    // 关键：iOS 必须在这一轮用户手势的同一个调用栈里 speak。
+    // 原来的 setTimeout(40) 会丢掉手势，导致 Apple 手机上完全没有声音。
+    const speakNow = () => { try { speechSynthesis.speak(u); } catch (e) {} };
+    if (IS_IOS) speakNow(); else setTimeout(speakNow, 40);
   } catch (e) { toast('朗读失败：' + e.message); }
 }
 function speak(t) {
@@ -1936,11 +1947,15 @@ const ACTIONS = {
     <div class="srow"><span>每组记录保留</span>${seg('maxHist', [[3, '3 次'], [5, '5 次'], [10, '10 次']])}</div>
     <div class="srow"><span>错词回炉阈值</span>${seg('recycleAt', [[2, '错 2 次'], [3, '错 3 次']])}</div>
     <div class="srow"><span>自动朗读单词</span>${seg('autoSay', [[1, '开'], [0, '关']])}</div>
-    <div class="srow"><span>发音</span>${seg('hd', [[1, '高清（联网）'], [0, '系统']])}</div>
+    ${IS_IOS
+      ? `<div class="srow"><span>发音</span><span style="font-size:12px;color:var(--sub)">Apple 系统语音</span></div>`
+      : `<div class="srow"><span>发音</span>${seg('hd', [[1, '高清（联网）'], [0, '系统']])}</div>`}
     <div class="srow"><span>口音</span>${seg('accent', [['us', '美音'], ['uk', '英音']])}</div>
     <div class="srow"><span>语速</span>${seg('rate', [[0.75, '慢'], [0.9, '标准'], [1.05, '快']])}</div>
     <div class="srow"><span>试听</span><button class="s-btn" data-s="testSay" style="width:auto;margin-top:0">🔊 读 book</button></div>
-    <div style="font-size:12px;line-height:1.5;color:var(--sub);margin:-2px 0 8px">单词用有道发音，整句用 Google 翻译语音；整句高清需能访问 Google，失败会自动回退系统语音。</div>
+    <div style="font-size:12px;line-height:1.5;color:var(--sub);margin:-2px 0 8px">${IS_IOS
+      ? '当前使用 Apple 系统语音，不需要联网。如果试听仍无声，请检查手机侧边静音键和媒体音量；也可以在系统「设置 → 辅助功能 → 朗读内容」里确认英文语音可用。'
+      : '单词用有道发音，整句用 Google 翻译语音；整句高清需能访问 Google，失败会自动回退系统语音。'}</div>
     <div class="srow"><span>每日目标</span>${seg('goal', [[10, '10 词'], [20, '20 词'], [30, '30 词'], [50, '50 词']])}</div>
     <div class="srow"><span>答错的词自动进生词本</span>${seg('autoStar', [[1, '开'], [0, '关']])}</div>
     <div class="srow" style="display:block;border-top:1px solid var(--line);padding-top:14px;margin-top:16px">
@@ -2188,7 +2203,11 @@ document.addEventListener('click', e => {
     save(); render(); ACTIONS.settings(true); return;
   }
   if (k === 'fx') { S.cfg.fx = Number(b.dataset.v); save(); ACTIONS.settings(true); return; }
-  if (k === 'hd') { S.cfg.hd = Number(b.dataset.v); save(); ACTIONS.settings(true); toast(S.cfg.hd ? '高清发音：联网，优先有道' : '已切回系统语音'); return; }
+  if (k === 'hd') {
+    if (IS_IOS) { toast('iOS 使用系统语音，无需切换高清'); return; }
+    S.cfg.hd = Number(b.dataset.v); save(); ACTIONS.settings(true);
+    toast(S.cfg.hd ? '高清发音：联网，优先有道' : '已切回系统语音'); return;
+  }
   if (k === 'accent') { S.cfg.accent = b.dataset.v; lastAccent = ''; save(); ACTIONS.settings(true); return; }
   if (k === 'rate') { S.cfg.rate = Number(b.dataset.v); lastNativeRate = 0; save(); ACTIONS.settings(true); return; }
   if (k === 'testSay') { speak('book'); return; }
