@@ -80,7 +80,10 @@ public class MainActivity extends Activity {
                 if (n.contains("pico")) sc -= 6;
                 if (v.getQuality() >= Voice.QUALITY_HIGH) sc += 3;
                 else if (v.getQuality() >= Voice.QUALITY_NORMAL) sc += 1;
-                if (v.isNetworkConnectionRequired()) sc += 1;
+                // 回退到系统 TTS 时通常已经断网/Google 不可达，必须优先本地音色。
+                // 之前网络音色 +1 会让 Google 在线音色压过本地 Google 音色，断网时两者都发不出声。
+                if (v.isNetworkConnectionRequired()) sc -= 8;
+                else sc += 2;
                 if (v.getLatency() == Voice.LATENCY_LOW) sc += 1;
                 if (sc > bestScore) { bestScore = sc; best = v; }
             }
@@ -102,13 +105,15 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public void speak(final String text) {
-            if (!ttsReady || text == null || tts == null) return;
+        public boolean speak(final String text) {
+            if (!ttsReady || text == null || tts == null) return false;
+            int r;
             if (Build.VERSION.SDK_INT >= 21) {
-                tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "wordbook");
+                r = tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "wordbook");
             } else {
-                tts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+                r = tts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
             }
+            return r == TextToSpeech.SUCCESS;
         }
 
         @JavascriptInterface

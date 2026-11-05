@@ -587,6 +587,25 @@ if (WEB_TTS) {
   }, { passive: true, once: true });
 }
 let voiceWarned = false, nativeWarned = false;
+function speakNative(t, tries) {
+  tries = tries || 0;
+  syncNativeVoice();
+  let ready = false;
+  try { ready = window.AndroidTTS.ready(); } catch (e) {}
+  if (ready) {
+    try { if (window.AndroidTTS.speak(t) !== false) return true; } catch (e) {}
+  }
+  // TTS 初始化/音色切换有延迟：短退避重试几次，别一次 ready=false 就永久静音。
+  if (tries < 4) {
+    setTimeout(() => speakNative(t, tries + 1), 450 + tries * 350);
+    return true;
+  }
+  if (!nativeWarned) {
+    nativeWarned = true;
+    toast('系统语音还没准备好，请稍后再点一次');
+  }
+  return false;
+}
 function syncNativeVoice() {
   if (!NATIVE_TTS) return;
   const acc = ttsAccent(), rate = ttsRate();
@@ -627,7 +646,7 @@ function speakHd(t) {
       if (idx >= urls.length) { done = true; speakSystem(t); return; }
       const a = new Audio(urls[idx++]);
       hdAudio = a;
-      let failed = false;
+      let failed = false, started = false;
       const advance = () => {
         if (failed || done || seq !== hdSeq) return;
         failed = true;
@@ -637,6 +656,7 @@ function speakHd(t) {
         tryNext();
       };
       a.onerror = advance;
+      a.onplaying = () => { started = true; clearTimeout(timer); };
       a.onended = () => {
         if (seq !== hdSeq) return;
         done = true; clearTimeout(timer);
@@ -644,26 +664,14 @@ function speakHd(t) {
       };
       const p = a.play();
       if (p && p.catch) p.catch(advance);
-      timer = setTimeout(() => { if (!done && seq === hdSeq && a.readyState < 2) advance(); }, 1400);
+      timer = setTimeout(() => { if (!done && seq === hdSeq && (!started || a.readyState < 2)) advance(); }, 1400);
     };
     tryNext();
     return true;
   } catch (e) { return false; }
 }
 function speakSystem(t) {
-  if (NATIVE_TTS) {
-    syncNativeVoice();
-    let ready = true;
-    try { ready = window.AndroidTTS.ready(); } catch (e) {}
-    try {
-      if (ready) window.AndroidTTS.speak(t);
-      else if (!nativeWarned) {
-        nativeWarned = true;
-        setTimeout(() => { try { window.AndroidTTS.speak(t); } catch (e) {} }, 800);
-      }
-    } catch (e) {}
-    return;
-  }
+  if (NATIVE_TTS) return speakNative(t, 0);
   if (!WEB_TTS) return toast('这台设备不支持语音朗读');
   try {
     const vs = speechSynthesis.getVoices() || [];
