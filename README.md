@@ -10,7 +10,7 @@
 [![单文件](https://img.shields.io/badge/%E5%8D%95%E6%96%87%E4%BB%B6-7.2MB-1f6feb?style=for-the-badge)](https://github.com/Supercell023/wordbook/releases)
 [![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-220%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![CI](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml/badge.svg)](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml)
-[![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Android%20%C2%B7%20iOS%20%C2%B7%20Web-8957e5?style=for-the-badge)](https://github.com/Supercell023/wordbook)
+[![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Android%20%C2%B7%20iOS%20%C2%B7%20HarmonyOS%20%C2%B7%20Web-8957e5?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-MIT-yellow?style=for-the-badge)](LICENSE)
 
 </div>
@@ -85,7 +85,7 @@
 
 学完一组不是结束：**每个词有自己的复习间隔**（ease、连对次数、遗忘次数），答错的词会降间隔、优先回炉；首页能看到**未来 7 天到期预测**和**薄弱词**。练习除了认词，还有**听音选义**、**例句填空**、**拼写自测**；答错/拼错自动进**错题本**，按错误类型（认词/听音/填空/拼写）记录。词卡里可以看完全部义项、英英释义、词形、近反义和同族词，同族词之间能一层层点进去，再用「‹」返回上一个词；搜索会保留最近查过的词。
 
-## 🚀 三种用法，挑一个
+## 🚀 四种用法，挑一个
 
 ### ① 一个 HTML 文件（最省事）
 
@@ -102,6 +102,14 @@
 - PWA 要求 **HTTPS 或 localhost**；局域网 `http://192.168.x.x` 浏览器不允许安装。
 - 构建时跑 `./build.sh all`，会生成图标、同步 manifest / sw / icons 到四个端，并自校验。
 - 详细排查见 [部署指南](docs/部署指南.md) 第八节。
+
+### ④ 鸿蒙 NEXT（ArkTS 壳，源码）
+
+`harmony/` 是可被 DevEco Studio 打开的 Stage 模型工程：用 ArkTS 的 `Web` 组件加载同一份 `vocab.html`，并通过 `javaScriptProxy` 桥接 Core Speech Kit 的系统发音。HarmonyOS 4.x 仍直接装上面的 APK；NEXT（5.x）用这个工程编译 HAP。
+
+- 本机没有 HarmonyOS SDK，**未编译/未签名**，需要 DevEco Studio 5.0.3+ 和华为开发者账号。
+- 打开、签名、构建步骤见 [harmony/README.md](harmony/README.md)。
+- 改完网页后执行 `bash harmony/sync.sh` 把最新 `dist/vocab.html` 同步进去。
 
 ## 🗂 词库
 
@@ -137,6 +145,7 @@
   上海高考 ─┤        │                  ├─▶ 浏览器直接打开
   Tatoeba ─┘        │                  ├─▶ server/public ─▶ 学生手机
   WordNet ──────────┘                  ├─▶ android/assets ─▶ APK
+                                       ├─▶ harmony/rawfile ─▶ HAP
                                        └─▶ ios/Resources ─▶ WKWebView
 
   学生端（localStorage）──手动推送──▶ server.js ──▶ 老师端 admin.html
@@ -160,6 +169,10 @@ bash tools/fetch_data.sh                   # 下载 data/ecdict.csv（约 66MB�
 sudo apt-get install -y openjdk-17-jdk-headless aapt zipalign
 bash android/build.sh                      # 产物 android/wordbook-<版本>-debug.apk + wordbook.apk
 # release 签名见 docs/部署指南.md 第十一节（WORDBOOK_KEYSTORE 等四个环境变量）
+
+# 鸿蒙 NEXT（本机只同步源码，编译签名需 DevEco Studio）
+bash harmony/sync.sh                       # 把 dist/vocab.html / 图标同步进 harmony/rawfile
+# 然后用 DevEco Studio 打开 harmony/，Sync → Run（详见 harmony/README.md）
 
 # 测试
 cd tests && npm ci && node test.js
@@ -209,6 +222,7 @@ sudo bash server/deploy.sh --domain wb.example.com
 - [部署指南](docs/部署指南.md) —— 从零到一台能用的服务器
 - [架构说明](docs/架构.md) —— 数据结构、分组算法、接口清单
 - [竞品调研](docs/竞品调研.md) —— 同类 App 的特色、槽点与本项目的取舍
+- [鸿蒙 NEXT 工程](harmony/README.md) —— ArkTS 壳、DevEco 打开/签名/构建步骤
 - [内容质量报告](docs/内容质量报告.md) —— 义项清洗、词性回填、例句筛选的数字与遗留风险
 - [数据来源](data/README.md) —— 每个文件从哪来、什么许可
 

@@ -1,0 +1,9 @@
+/build
+/.hvigor
+/hvigor/.cache
+/oh_modules
+/local.properties
+/.idea
+/entry/build
+/entry/oh_modules
+/entry/.preview
