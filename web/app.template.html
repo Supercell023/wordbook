@@ -473,6 +473,14 @@ html[data-theme="dark"] .lbtn.on{color:#0e1117}
 .rbtn.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 html[data-theme=dark] .rbtn{background:#171c27;border-color:#2a3242;color:#e7e2d6}
 html[data-theme=dark] .rbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.qbtns.three{gap:8px}
+.qbtns.three .btn{height:66px;flex-direction:column;gap:0;font-size:15px;line-height:1.15}
+.btn small{font-size:10px;font-weight:500;opacity:.72;margin-top:2px}
+.btn.mid{color:var(--gold);border:1.4px solid color-mix(in srgb,var(--gold) 62%,var(--line));background:transparent}
+.qfb{text-align:center;font-size:12.5px;color:var(--sub);min-height:18px;margin:0 0 6px}
+.qfb.good{color:var(--ok)}
+.qfb.fuzzy{color:var(--gold)}
+.qfb.again{color:var(--bad)}
 </style>
 </head>
 <body>
@@ -703,7 +711,7 @@ let memOnly = false, S = null, view = 'home', ctx = {}, fbTimer = null, lastQId 
 function defaults() {
   return {
     v: 2, range: 0, seq: 0, learned: {}, groups: [], actives: [], cur: null, lastDone: null,
-    days: {}, star: {}, wrong: {}, searchHist: [], fxDay: '',
+    days: {}, fzDays: {}, star: {}, wrong: {}, searchHist: [], fxDay: '',
     cfg: { maxActive: 3, maxHist: 5, recycleAt: 2, diff: 'balanced', autoSay: 1, goal: 20, autoStar: 1, theme: 'auto', fx: 1, fs: 'md', contrast: 'normal', introOff: 0, hd: 1, accent: 'us', rate: 0.9, libs: DEFAULT_LIBS.slice() },
     sync: { url: '', token: '', name: '', lastHash: '', lastAt: 0, inbox: [] }
   };
@@ -715,7 +723,7 @@ function migrate(o) {
   d.seq = o.seq || 0;
   Object.keys(o.learned || {}).forEach(k => {
     const r = o.learned[k] || {};
-    d.learned[k] = { w: r.w || 0, r: r.r || 0, t: r.t || 0, ok: true, e: r.e || 2.5, st: r.st || 0, lp: r.lp || 0, iv: r.iv || 0 };
+    d.learned[k] = { w: r.w || 0, r: r.r || 0, t: r.t || 0, ok: true, e: r.e || 2.5, st: r.st || 0, lp: r.lp || 0, iv: r.iv || 0, fz: r.fz || 0, fzRecall: r.fzRecall || 0, fzAlt: r.fzAlt || 0, lastGrade: r.lastGrade || '' };
   });
   (o.groups || []).forEach(g => {
     if (!g || !Array.isArray(g.ids)) return;
@@ -771,20 +779,56 @@ function streakDays() {
 }
 const days_I = i => [1, 2, 4, 7, 15, 30][Math.max(0, Math.min(5, i | 0))];
 function endOfToday() { const d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime(); }
-/* 每个词自己的间隔：答错降 ease、清零连对；答对按 ease 递增，封顶 180 天 */
-function srsUpdate(rec, wrong, now) {
+/* 三档评分：again 不熟 / fuzzy 记不清 / good 掌握。
+   fuzzy 走 1–7 天的短间隔；连续两次模糊回到 1 天。 */
+function srsUpdate(rec, grade, now, source) {
+  if (grade === true) grade = 'good';
+  if (grade === false) grade = 'again';
+  grade = grade === 'fuzzy' ? 'fuzzy' : grade === 'good' ? 'good' : 'again';
   rec.e = Math.max(1.3, Math.min(3, rec.e || 2.5));
   rec.st = rec.st || 0; rec.lp = rec.lp || 0; rec.iv = rec.iv || 0;
-  if (wrong) {
+  rec.fz = rec.fz || 0; rec.fzRecall = rec.fzRecall || 0; rec.fzAlt = rec.fzAlt || 0;
+  if (grade === 'again') {
     rec.lp++; rec.st = 0; rec.e = Math.max(1.3, rec.e - .2); rec.iv = .5;
+    if (rec.fz) { rec.fzRecall = 0; rec.fzAlt = 0; }
+  } else if (grade === 'fuzzy') {
+    rec.fz++; rec.st = Math.max(0, rec.st - 1);
+    rec.e = Math.max(1.3, rec.e - .05);
+    if (!rec.iv) rec.iv = 1;
+    else rec.iv = Math.max(1, Math.min(7, Math.round(rec.iv * .6)));
+    if (rec.lastGrade === 'fuzzy') rec.iv = 1;
+    rec.fzRecall = 0; rec.fzAlt = 0;
   } else {
     rec.st++; rec.e = Math.min(3, rec.e + .05);
     if (!rec.iv) rec.iv = 1;
     else if (rec.st <= 1) rec.iv = 1;
     else if (rec.st === 2) rec.iv = 3;
     else rec.iv = Math.min(180, Math.max(1, Math.round(rec.iv * rec.e)));
+    // 模糊词摘帽：认词 + 听音/填空各对一次
+    if (rec.fz) {
+      if (source === 'recall') rec.fzRecall = 1; else rec.fzAlt = 1;
+      if (rec.fzRecall && rec.fzAlt) { rec.fz = 0; rec.fzRecall = 0; rec.fzAlt = 0; }
+    }
   }
+  rec.lastGrade = grade;
   rec.due = now + Math.round(rec.iv * 864e5);
+}
+function fuzzyIds(n) {
+  return Object.keys(S.learned || {}).filter(id => WORDS[id] && (S.learned[id].fz || 0) > 0)
+    .sort((a, b) => {
+      const x = S.learned[a], y = S.learned[b];
+      return (y.fz || 0) - (x.fz || 0) || (x.due || 0) - (y.due || 0);
+    })
+    .slice(0, n || 100);
+}
+function fuzzyWeek() {
+  const fz = S.fzDays || {}, days = S.days || {};
+  let f = 0, t = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const k = todayKey(d); f += fz[k] || 0; t += days[k] || 0;
+  }
+  return { fuzzy: f, total: t, rate: t ? Math.round(f / t * 100) : 0 };
 }
 function dueIds() {
   const now = endOfToday();
@@ -811,10 +855,10 @@ function weakIds(n) {
     .map(id => {
       const r = S.learned[id];
       const age = (now - (r.t || 0)) / 864e5;
-      const score = (r.w || 0) * 2 + (r.lp || 0) * 2 + (age > 14 ? 1 : 0) - (r.st || 0) * .4;
-      return { id, score, w: r.w || 0 };
+      const score = (r.w || 0) * 2 + (r.lp || 0) * 2 + (r.fz || 0) * 1.5 + (age > 14 ? 1 : 0) - (r.st || 0) * .4;
+      return { id, score, w: r.w || 0, fz: r.fz || 0 };
     })
-    .filter(x => x.score > 0 && x.w > 0)
+    .filter(x => x.score > 0 && (x.w > 0 || x.fz > 0))
     .sort((a, b) => b.score - a.score)
     .slice(0, n || 20).map(x => x.id);
 }
@@ -946,7 +990,7 @@ function newSession(kind, ids, opt) {
   return Object.assign({
     sid: sid(), kind, ids: ids.slice(), queue: shuffle(ids.slice()), attempts: {}, taps: 0, fail: 0,
     start: Date.now(), act: Date.now(), peek: false, fb: null, range: S.range, gno: 0, groupId: null, seen: false,
-    mastered: []
+    mastered: [], grades: {}, hasAgain: {}, fuzzy: {}
   }, opt || {});
 }
 // 放弃一个还没学完的组：本组学过的词退回词库，组号回收，避免下一组跳号
@@ -986,10 +1030,10 @@ function startGroupReview(gid) {
   const s = newSession('group', g.ids, { groupId: g.id, range: g.range, seen: true });
   S.actives.push(s); S.cur = s.sid; save(); go('quiz');
 }
-function startPractice(ids, gid) {
+function startPractice(ids, gid, kind) {
   if (!ids.length) return toast('这次没有错词');
   ensureSlot();
-  const s = newSession('practice', ids, { groupId: gid || null, range: S.range, seen: true });
+  const s = newSession(kind || 'practice', ids, { groupId: gid || null, range: S.range, seen: true });
   S.actives.push(s); S.cur = s.sid; save(); go('quiz');
 }
 function sampleLearned(n) {
@@ -1016,27 +1060,41 @@ function startMix() {
 }
 
 /* ---------- 答题 ---------- */
-function answer(ok) {
+function answer(grade) {
   const s = cur();
   if (!s || (s.fb && s.fb.lock)) return;
+  if (grade === true) grade = 'good';
+  if (grade === false) grade = 'again';
+  grade = grade === 'fuzzy' ? 'fuzzy' : grade === 'good' ? 'good' : 'again';
   const id = s.queue[0];
   s.taps++;
   s.attempts[id] = (s.attempts[id] || 0) + 1;
-  if (ok) {
-    s.queue.shift();
-    if (s.kind === 'learn' && s.mastered.indexOf(id) < 0) s.mastered.push(id);
-  } else {
-    // 不熟：直接跳到下一个词，本词放到本组最后，本组结束时再考一次
+  if (!s.grades) s.grades = {};
+  if (!s.hasAgain) s.hasAgain = {};
+  if (!s.fuzzy) s.fuzzy = {};
+  s.grades[id] = grade;
+  if (grade === 'again') {
+    // 不熟：本词放到本组最后，再考一次
     s.fail++;
+    s.hasAgain[id] = 1;
+    s.mastered = (s.mastered || []).filter(x => x !== id);
     markWrong(id, 'recall');
     s.queue.shift();
     s.queue.push(id);
+  } else if (grade === 'fuzzy') {
+    // 记不清：隔 2 张卡回马枪；第二次模糊不再回插，避免无限循环
+    s.fuzzy[id] = (s.fuzzy[id] || 0) + 1;
+    s.queue.shift();
+    if (s.fuzzy[id] < 2) s.queue.splice(Math.min(2, s.queue.length), 0, id);
+  } else {
+    s.queue.shift();
+    if (s.kind === 'learn' && s.mastered.indexOf(id) < 0) s.mastered.push(id);
   }
   s.peek = false;
   s.act = Date.now();
-  s.fb = { ok: !!ok, lock: true };
+  s.fb = { ok: grade === 'good', grade, lock: true };
   save(); render();
-  buzz(ok ? 8 : [0, 18, 40, 18]);
+  buzz(grade === 'good' ? 8 : grade === 'fuzzy' ? [8, 18, 28] : [0, 18, 40, 18]);
   clearTimeout(fbTimer);
   fbTimer = setTimeout(() => {
     const s2 = cur();
@@ -1044,7 +1102,7 @@ function answer(ok) {
     s2.fb = null;
     if (!s2.queue.length) finish();
     else { save(); render(); }
-  }, 220);
+  }, grade === 'fuzzy' ? 320 : 220);
 }
 function recycle(ids) {
   let n = 0;
@@ -1057,25 +1115,33 @@ function recycle(ids) {
 function finish() {
   const s = cur();
   if (!s) return;
-  const now = Date.now(), wrong = [];
+  const now = Date.now(), wrong = [], fuzzy = [], grades = {};
+  const source = s.kind === 'choice' ? (s.mode === 'cloze' ? 'cloze' : 'listen') : s.kind === 'spell' ? 'spell' : 'recall';
   s.ids.forEach(id => {
     const a = s.attempts[id] || 0;
     const rec = S.learned[id] || (S.learned[id] = { w: 0, r: 0, t: 0, ok: true });
+    const grade = (s.hasAgain && s.hasAgain[id]) ? 'again' : (s.fuzzy && s.fuzzy[id]) ? 'fuzzy' : (s.grades && s.grades[id] === 'fuzzy') ? 'fuzzy' : 'good';
+    grades[id] = grade;
     const add = Math.max(0, a - 1);
-    rec.w += s.kind === 'learn' ? Math.min(1, add) : Math.min(2, add);
+    if (grade === 'again') rec.w += s.kind === 'learn' ? Math.min(1, add) : Math.min(2, add);
     rec.r += 1; rec.t = now; rec.ok = true;
-    if (a > 1) wrong.push(id);
+    if (grade === 'again') wrong.push(id);
+    else if (grade === 'fuzzy') fuzzy.push(id);
   });
-  const first = s.ids.filter(id => (s.attempts[id] || 0) === 1).length;
+  const first = s.ids.filter(id => (s.attempts[id] || 0) === 1 && grades[id] === 'good').length;
   const dur = Math.round((now - s.start) / 1000);
   s.ids.forEach(id => {
     const r = S.learned[id];
     if (!r) return;
-    const wrongWord = (s.attempts[id] || 1) > 1;
-    srsUpdate(r, wrongWord, now);
+    srsUpdate(r, grades[id], now, source);
   });
   const before = todayCount();
   bumpDaily(s.ids.length);
+  if (fuzzy.length) {
+    const k = todayKey();
+    S.fzDays = S.fzDays || {};
+    S.fzDays[k] = (S.fzDays[k] || 0) + fuzzy.length;
+  }
   const after = todayCount(), goal = S.cfg.goal || 20;
   let fxKind = '';
   if (before < goal && after >= goal && S.fxDay !== todayKey()) {
@@ -1085,7 +1151,7 @@ function finish() {
   }
   let autoStars = 0;
   if (S.cfg.autoStar) wrong.forEach(id => { if (!S.star[id]) { S.star[id] = now; autoStars++; } });
-  const hrec = { ts: now, first, total: s.ids.length, taps: s.taps, dur, wrong, kind: s.kind, mode: s.mode || '' };
+  const hrec = { ts: now, first, total: s.ids.length, taps: s.taps, dur, wrong, fuzzy, kind: s.kind, mode: s.mode || '' };
   if (s.kind === 'learn') {
     S.groups.push({ id: s.gno, range: s.range, ts: now, ids: s.ids.slice(), hist: [hrec] });
   } else if (s.kind === 'group') {
@@ -1099,7 +1165,7 @@ function finish() {
   S.lastDone = {
     kind: s.kind, mode: s.mode || '', total: s.ids.length, first, taps: s.taps, dur,
     group: s.kind === 'learn' ? s.gno : s.groupId,
-    wrong: wrong.length, recycled, stars: autoStars,
+    wrong: wrong.length, fuzzy: fuzzy.length, recycled, stars: autoStars,
     today: todayCount(), goal: S.cfg.goal || 20, streak: streakDays()
   };
   S.actives = S.actives.filter(a => a.sid !== s.sid);
@@ -1110,8 +1176,8 @@ function finish() {
 
 /* ---------- 视图 ---------- */
 const VIEWS = {};
-const sessName = a => a.kind === 'learn' ? `第 ${a.gno} 组` : a.kind === 'group' ? `第 ${a.groupId} 组` : a.kind === 'mix' ? '混合复习' : a.kind === 'star' ? '生词本' : a.kind === 'due' ? '今日复习' : a.kind === 'spell' ? '拼写自测' : a.kind === 'choice' ? (a.mode === 'cloze' ? '例句填空' : '听音选义') : '错词练习';
-const sessKind = a => a.kind === 'learn' ? '学习中' : a.kind === 'group' ? '复习中' : a.kind === 'mix' ? '混合复习' : a.kind === 'star' ? '生词本复习' : a.kind === 'due' ? '间隔复习' : a.kind === 'spell' ? '拼写自测' : a.kind === 'choice' ? '选择练习' : '错词练习';
+const sessName = a => a.kind === 'learn' ? `第 ${a.gno} 组` : a.kind === 'group' ? `第 ${a.groupId} 组` : a.kind === 'mix' ? '混合复习' : a.kind === 'star' ? '生词本' : a.kind === 'due' ? '今日复习' : a.kind === 'spell' ? '拼写自测' : a.kind === 'fuzzy' ? '模糊词复习' : a.kind === 'choice' ? (a.mode === 'cloze' ? '例句填空' : '听音选义') : '错词练习';
+const sessKind = a => a.kind === 'learn' ? '学习中' : a.kind === 'group' ? '复习中' : a.kind === 'mix' ? '混合复习' : a.kind === 'star' ? '生词本复习' : a.kind === 'due' ? '间隔复习' : a.kind === 'spell' ? '拼写自测' : a.kind === 'fuzzy' ? '模糊词巩固' : a.kind === 'choice' ? '选择练习' : '错词练习';
 
 VIEWS.home = function () {
   const st = rangeStats();
@@ -1124,6 +1190,8 @@ VIEWS.home = function () {
   const fc = forecastDays(7);
   const weak = weakIds(20);
   const wrongN = wrongIds().length;
+  const fuzzyN = fuzzyIds().length;
+  const fwk = fuzzyWeek();
   const intro = (!S.cfg.introOff && !S.seq && !Object.keys(S.learned).length) ? `
     <div class="card intro">
       <div class="intro-t">选几个常看的词库</div>
@@ -1163,6 +1231,7 @@ VIEWS.home = function () {
     <div class="sub streak">🔥 连续 <b>${streakDays()}</b> 天 · 今日 <b>${todayCount()}</b>/${S.cfg.goal || 20} 词</div>
     ${weekStrip()}
     <div class="forecast">未来 7 天到期：${fc.slice(1, 6).map(x => `${x.lab} ${x.c}`).join(' · ')}${fc.slice(1, 6).every(x => !x.c) ? '暂无' : ''}</div>
+    ${fwk.total ? `<div class="forecast">本周模糊率 <b>${fwk.rate}%</b> · 记不清 ${fwk.fuzzy} 次</div>` : ''}
     ${S.fxDay === todayKey() ? '<div class="reward">✦ 今日奖励已领取</div>' : ''}
   </div>
   ${intro}
@@ -1179,6 +1248,7 @@ VIEWS.home = function () {
     <button class="card mini ${st.learned ? '' : 'off'}" data-act="listenStart"><span class="em">👂</span><b>听音选义</b><span>听发音 · 四选一</span></button>
     <button class="card mini ${st.learned ? '' : 'off'}" data-act="clozeStart"><span class="em">🕳️</span><b>例句填空</b><span>看句子补单词</span></button>
     <button class="card mini ${wrongN ? '' : 'off'}" data-act="wrongBook"><span class="em">✍️</span><b>错题本</b><span>${wrongN} 词 · 按错误类型</span></button>
+    ${fuzzyN ? `<button class="card mini" data-act="fuzzyBook"><span class="em">🟡</span><b>模糊词</b><span>${fuzzyN} 词 · 记不清，需巩固</span></button>` : ''}
     ${weak.length ? `<button class="card mini" data-act="weakBook"><span class="em">🩹</span><b>薄弱词</b><span>${weak.length} 词 · 优先补</span></button>` : ''}
   </div>
   ${syncBar()}
@@ -1250,9 +1320,11 @@ VIEWS.quiz = function () {
         : `<div class="qhint">轻点卡片看释义</div>`}
     </div>
   </div>
-  <div class="qbtns">
-    <button class="btn bad" data-act="no" ${s.fb ? 'disabled' : ''}>不熟</button>
-    <button class="btn ok" data-act="yes" ${s.fb ? 'disabled' : ''}>掌握</button>
+  ${s.fb ? `<div class="qfb ${s.fb.grade}">${s.fb.grade === 'good' ? '掌握 ✓' : s.fb.grade === 'fuzzy' ? '记不清 · 2 张卡后再看' : '不熟 · 本组最后再考'}</div>` : ''}
+  <div class="qbtns three">
+    <button class="btn bad" data-act="no" ${s.fb ? 'disabled' : ''}>不熟<small>没想起来</small></button>
+    <button class="btn mid" data-act="fuzzy" ${s.fb ? 'disabled' : ''}>记不清<small>有印象</small></button>
+    <button class="btn ok" data-act="yes" ${s.fb ? 'disabled' : ''}>掌握<small>很确定</small></button>
   </div>`;
 };
 
@@ -1265,7 +1337,8 @@ VIEWS.done = function () {
         : d.kind === 'star' ? '生词本复习完成'
           : d.kind === 'due' ? '今日复习完成'
             : d.kind === 'spell' ? '拼写自测完成'
-              : d.kind === 'choice' ? (d.mode === 'cloze' ? '例句填空完成' : '听音选义完成') : '错词练习完成';
+              : d.kind === 'fuzzy' ? '模糊词复习完成'
+                : d.kind === 'choice' ? (d.mode === 'cloze' ? '例句填空完成' : '听音选义完成') : '错词练习完成';
   const rate = pctOf(d.first, d.total);
   let again = '';
   if (d.kind === 'learn') again = `<button class="cta" data-act="newgroup"><span>下一组</span><small>继续学习</small></button>`;
@@ -1280,7 +1353,7 @@ VIEWS.done = function () {
     <div class="stat"><b>${d.taps}</b><span>点击次数</span></div>
     <div class="stat"><b>${fmtDur(d.dur)}</b><span>用时</span></div>
   </div>
-  ${(d.wrong || d.recycled || d.stars) ? `<div class="tgline">本次错 ${d.wrong} 词${d.stars ? ` · 新收录 ${d.stars} 个生词` : ''}${d.recycled ? ` · 回炉 ${d.recycled} 词` : ''}</div>` : ''}
+  ${(d.wrong || d.fuzzy || d.recycled || d.stars) ? `<div class="tgline">本次错 ${d.wrong || 0} 词${d.fuzzy ? ` · 记不清 ${d.fuzzy} 词` : ''}${d.stars ? ` · 新收录 ${d.stars} 个生词` : ''}${d.recycled ? ` · 回炉 ${d.recycled} 词` : ''}</div>` : ''}
   <div class="tgline">今日 ${d.today}/${d.goal} 词 · 连续 ${d.streak} 天</div>
   ${S.fxDay === todayKey() ? '<div class="reward">✦ 今天的奖励已经收下</div>' : ''}
   ${again}
@@ -1350,13 +1423,23 @@ function prepareChoice(s) {
   opts.splice(ans, 0, right);
   s.ch = { id, mode, opts, ans, picked: null, sent };
 }
-function startChoice(mode) {
-  let ids = rangeLearnedIds().filter(id => WORDS[id]);
+function startChoice(mode, onlyIds) {
+  let ids = onlyIds && onlyIds.length ? onlyIds.slice() : rangeLearnedIds().filter(id => WORDS[id]);
   if (mode === 'cloze') ids = ids.filter(id => blankCloze(WORDS[id]));
-  if (ids.length < 2) return toast(mode === 'cloze' ? '带例句的已学词还不够，先学一组吧' : '先学几个单词再练');
+  if (ids.length < (onlyIds && onlyIds.length ? 1 : 2)) return toast(mode === 'cloze' ? '带例句的已学词还不够，先学一组吧' : '先学几个单词再练');
   ensureSlot();
   const s = newSession('choice', shuffle(ids.slice()).slice(0, 20), { range: S.range, seen: true, mode });
   S.actives.push(s); S.cur = s.sid; save(); go('choice');
+}
+function startFuzzy() {
+  const ids = fuzzyIds(20);
+  if (!ids.length) return toast('还没有记不清的词');
+  startPractice(ids, null, 'fuzzy');
+}
+function startFuzzyChoice(mode) {
+  const ids = fuzzyIds(20);
+  if (!ids.length) return toast('还没有记不清的词');
+  startChoice(mode, ids);
 }
 VIEWS.choice = function () {
   const s = cur();
@@ -1423,6 +1506,32 @@ VIEWS.weak = function () {
         <div class="info">错 ${r.w || 0} 次 · 遗忘 ${r.lp || 0} 次 · 连对 ${r.st || 0} · 间隔 ${r.iv ? Math.round(r.iv) + ' 天' : '新'}</div>
         <div class="go">›</div></div>`;
     }).join('') : `<div class="empty">还没有薄弱词<br>多复习几次后，这里会列出需要补的词</div>`}
+  </div>`;
+};
+
+VIEWS.fuzzy = function () {
+  const ids = fuzzyIds(100);
+  const fwk = fuzzyWeek();
+  return `
+  <div class="topbar">
+    <button class="tbtn" data-act="home">‹</button>
+    <div class="ttl">模糊词 <span>· ${ids.length} 词</span></div>
+    <span style="width:36px"></span>
+  </div>
+  ${ids.length ? `<button class="cta" data-act="fuzzyStart"><span>先认一遍</span><small>${Math.min(20, ids.length)} 词 · 认词复习</small></button>
+  <div class="grid2" style="margin-top:10px">
+    <button class="card mini" data-act="fuzzyListen"><span class="em">👂</span><b>听音巩固</b><span>听发音选中文</span></button>
+    <button class="card mini" data-act="fuzzyCloze"><span class="em">🕳️</span><b>例句巩固</b><span>看句子补单词</span></button>
+  </div>` : ''}
+  ${fwk.total ? `<div class="forecast" style="margin-top:12px">本周模糊率 <b>${fwk.rate}%</b> · 记不清 ${fwk.fuzzy} 次</div>` : ''}
+  <div class="blist" style="margin-top:10px">
+    ${ids.length ? ids.map(id => {
+      const w = WORDS[id], r = S.learned[id] || {};
+      return `<div class="brow" data-act="wordCard" data-id="${id}">
+        <div class="n">${esc(w.w)}</div>
+        <div class="info">模糊 ${r.fz || 0} 次 · ${r.fzRecall ? '已认词' : '待认词'} · ${r.fzAlt ? '已听/填' : '待听/填'} · ${r.iv ? Math.round(r.iv) + ' 天' : '新'}</div>
+        <div class="go">›</div></div>`;
+    }).join('') : `<div class="empty">还没有模糊词<br>答题时点「记不清」的词会收在这里</div>`}
   </div>`;
 };
 
@@ -1711,7 +1820,7 @@ function runFx(g, canvas, style) {
 const escA = s => String(s == null ? '' : s);
 function digestOf() {
   const parts = [];
-  Object.keys(S.learned).sort().forEach(k => { const r = S.learned[k]; parts.push(k + ':' + r.w + ':' + (r.ok ? 1 : 0) + ':' + r.t); });
+  Object.keys(S.learned).sort().forEach(k => { const r = S.learned[k]; parts.push(k + ':' + r.w + ':' + (r.fz || 0) + ':' + (r.ok ? 1 : 0) + ':' + r.t); });
   const gs = S.groups.map(g => g.id + ':' + g.ids.length + ':' + g.hist.map(h => h.first + '/' + (h.wrong || []).length).join('.'));
   const str = S.seq + '|' + parts.join(',') + '|' + gs.join(',');
   let h = 0x811c9dc5;
@@ -1731,12 +1840,13 @@ function pushData() {
       wrong: (h.wrong || []).length, kind: h.kind || '', mode: h.mode || '', gno: g.id });
   }));
   recent.sort((a, b) => b.ts - a.ts);
-  const dayKeys = Object.keys(S.days || {}).sort().slice(-30), days = {};
-  dayKeys.forEach(k => { if ((S.days[k] || 0) > 0) days[k] = S.days[k]; });
+  const dayKeys = Object.keys(S.days || {}).sort().slice(-30), days = {}, fzDays = {};
+  dayKeys.forEach(k => { if ((S.days[k] || 0) > 0) days[k] = S.days[k]; if ((S.fzDays || {})[k]) fzDays[k] = S.fzDays[k]; });
   const minutes = Math.round(S.groups.reduce((a, g) => a + g.hist.reduce((b, h) => b + (h.dur || 0), 0), 0) / 60);
   return { seq: S.seq, learned: Object.keys(S.learned).length, groups, minutes, cfg: { range: S.range, diff: S.cfg.diff },
-    days, streak: streakDays(), goal: S.cfg.goal || 20, today: todayCount(), due: dueIds().length,
-    wrongN: wrongIds().length, stars: Object.keys(S.star || {}).length, sessions: recent.slice(0, 30) };
+    days, fzDays, streak: streakDays(), goal: S.cfg.goal || 20, today: todayCount(), due: dueIds().length,
+    wrongN: wrongIds().length, fuzzyN: fuzzyIds().length, fuzzyRate: fuzzyWeek().rate,
+    stars: Object.keys(S.star || {}).length, sessions: recent.slice(0, 30) };
 }
 function syncStatusText() {
   const y = S.sync;
@@ -1900,6 +2010,10 @@ const ACTIONS = {
     const ch = s.ch, id = ch.id, n = Number(i), good = n === ch.ans;
     ch.picked = n;
     s.attempts[id] = (s.attempts[id] || 0) + (good ? 1 : 2);
+    if (!s.grades) s.grades = {};
+    if (!s.hasAgain) s.hasAgain = {};
+    s.grades[id] = good ? 'good' : 'again';
+    if (!good) s.hasAgain[id] = 1;
     if (!good) { markWrong(id, ch.mode); }
     if (good) speak(WORDS[id].w);
     save(); render();
@@ -1916,6 +2030,10 @@ const ACTIONS = {
   clozeStart() { startChoice('cloze'); },
   wrongBook() { go('wrongbook'); },
   weakBook() { go('weak'); },
+  fuzzyBook() { go('fuzzy'); },
+  fuzzyStart() { startFuzzy(); },
+  fuzzyListen() { startFuzzyChoice('listen'); },
+  fuzzyCloze() { startFuzzyChoice('cloze'); },
   wrongStart() { const ids = wrongIds(20); if (!ids.length) return toast('还没有错题'); startPractice(ids); },
   weakStart() { const ids = weakIds(20); if (!ids.length) return toast('还没有薄弱词'); startPractice(ids); },
   hideIntro() { S.cfg.introOff = 1; save(); render(); },
@@ -1957,8 +2075,9 @@ const ACTIONS = {
   },
   startQuiz() { const s = cur(); if (!s) return go('home'); s.seen = true; save(); go('quiz'); },
   peek() { const s = cur(); if (!s || s.fb) return; s.peek = !s.peek; render(); },
-  yes() { answer(true); },
-  no() { answer(false); },
+  yes() { answer('good'); },
+  no() { answer('again'); },
+  fuzzy() { answer('fuzzy'); },
   quit() { closeModal(false); save(); go('home'); },
   book() { if (!S.groups.length) return toast('还没有已背的单词'); go('book'); },
   star(id) { id = Number(id); if (S.star[id]) delete S.star[id]; else S.star[id] = Date.now(); save(); render(); },
@@ -1989,6 +2108,10 @@ const ACTIONS = {
     if (good) speak(w.w);
     s.sp = { res: good ? 'ok' : 'bad', ans: typed };
     s.attempts[id] = (s.attempts[id] || 0) + (good ? 1 : 2);
+    if (!s.grades) s.grades = {};
+    if (!s.hasAgain) s.hasAgain = {};
+    s.grades[id] = good ? 'good' : 'again';
+    if (!good) s.hasAgain[id] = 1;
     if (!good) markWrong(id, 'spell');
     save(); render();
     setTimeout(() => {
@@ -2123,7 +2246,14 @@ S.sync = Object.assign(defaults().sync, S.sync || {});
 if (!S.sync.url && /^https?:\/\//.test(location.origin)) S.sync.url = location.origin;
 S.learned = S.learned || {}; S.groups = S.groups || []; S.actives = S.actives || [];
 S.days = S.days || {}; S.star = S.star || {};
-S.wrong = S.wrong || {}; S.searchHist = S.searchHist || [];
+S.wrong = S.wrong || {}; S.searchHist = S.searchHist || []; S.fzDays = S.fzDays || {};
+Object.keys(S.learned).forEach(id => {
+  const r = S.learned[id];
+  if (r.fz === undefined) r.fz = 0;
+  if (r.fzRecall === undefined) r.fzRecall = 0;
+  if (r.fzAlt === undefined) r.fzAlt = 0;
+  if (r.lastGrade === undefined) r.lastGrade = '';
+});
 if (!S.actives.some(a => a.sid === S.cur)) S.cur = null;
 S.actives.forEach(a => { if (!a.queue) a.queue = a.ids.slice(); a.fb = null; a.peek = false; });
 applyTheme(); applyDisplay();

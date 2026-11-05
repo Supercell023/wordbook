@@ -7,7 +7,7 @@
  * clients.claim()；若确实是从旧版本升级，向所有 window client 发
  * {type:'WB_UPDATED', version, cache}，页面据此提示「新版本，点此刷新」。
  */
-const VERSION = '6932553286ee';
+const VERSION = 'db695ed3b817';
 const CACHE = 'wordbook-' + VERSION;
 
 /* 预缓存清单：单个资源失败不影响安装（旧版本里 ./student.html 在静态托管下会 404，

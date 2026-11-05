@@ -357,6 +357,8 @@ async function openStudent(id) {
           <div class="cell"><b>${sm.minutes}</b><span>累计分钟</span></div>
           <div class="cell"><b>${sm.activeDays}</b><span>活跃天数</span></div>
           <div class="cell"><b>${sm.wrongN}</b><span>错词本</span></div>
+          <div class="cell"><b>${sm.fuzzyN == null ? '—' : sm.fuzzyN}</b><span>模糊词</span></div>
+          <div class="cell"><b>${sm.fuzzyRate == null ? '—' : sm.fuzzyRate + '%'}</b><span>7 天模糊率</span></div>
           <div class="cell"><b>${sm.stars}</b><span>收藏</span></div>
           <div class="cell"><b>${sm.learned}</b><span>已学单词</span></div>
         </div>

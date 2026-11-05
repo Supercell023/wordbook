@@ -76,7 +76,7 @@ ok(new Set(g1words).size === 20, '组内 20 词不重复');
 
 console.log('\n[3] 过关：不熟回队列、会话可中断');
 click('startQuiz');
-ok(count('.btn') === 2, '只有两个按钮');
+ok(count('.btn') === 3 && !!doc.querySelector('[data-act="fuzzy"]'), '三档按钮：不熟 / 记不清 / 掌握');
 ok(!doc.querySelector('.qcard .qzh'), '默认不显示中文');
 click('peek');
 ok(!!doc.querySelector('.qcard .qzh'), '轻点卡片显示释义');
@@ -669,6 +669,49 @@ console.log('\n[24] 老师端同步载荷');
   ok(p.goal === 20 && p.today === 3 && p.days[key] === 3, '上传今日/目标/每日学习量');
   ok(p.due === 1 && p.stars === 1 && typeof p.streak === 'number', '上传待复习/收藏/连续天数');
   ok(Array.isArray(p.sessions) && Array.isArray(p.groups), '上传最近练习与分组');
+}
+
+console.log('\n[25] 三档评分与模糊词闭环');
+{
+  const d = makeDom(); const w = d.window, doc = w.document;
+  const clk = (act, id) => {
+    const list = [...doc.querySelectorAll(`[data-act="${act}"]`)];
+    const el = list.find(e => id === undefined || e.dataset.id === String(id));
+    if (!el) throw new Error('missing ' + act);
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  };
+  w.eval("S = defaults(); S.cfg.goal = 999; save(); go('home')");
+  const id = w.eval("WORDS.findIndex(x => x.w === 'book')");
+  w.eval(`(()=>{ const id=${id}; const s=newSession('group',[id],{seen:true}); S.actives=[s]; S.cur=s.sid; save(); go('quiz'); })()`);
+  ok(doc.querySelectorAll('.qbtns .btn').length === 3, '答题页有三档按钮');
+  ok(!!doc.querySelector('[data-act="fuzzy"]') && doc.body.textContent.includes('有印象'), '中间档说明是“有印象”');
+
+  // 多词会话：记不清后隔 2 张卡回马枪
+  w.eval(`(()=>{ const ids=[${id}, ${id}+1, ${id}+2, ${id}+3]; const s=newSession('group',ids,{seen:true}); s.queue=ids.slice(); S.actives=[s]; S.cur=s.sid; save(); go('quiz'); })()`);
+  clk('fuzzy');
+  const qAfter = w.eval('cur().queue.slice()');
+  ok(qAfter.length === 4 && qAfter[2] === id, '记不清后隔 2 张卡再考');
+  ok(w.eval(`cur().fuzzy[${id}]`) === 1, '记录本组模糊次数');
+
+  // 记不清后当场答掌握：仍要进明日模糊复习
+  w.eval(`(()=>{ const s=newSession('group',[${id}],{seen:true}); S.actives=[s]; S.cur=s.sid; save(); go('quiz'); })()`);
+  clk('fuzzy'); clk('yes');
+  ok(w.eval('S.lastDone && S.lastDone.fuzzy') === 1 && w.eval(`S.learned[${id}].fz`) === 1, '记不清后当场掌握仍留在模糊词');
+
+  // 直接校验 SRS：10 天词模糊 -> 6 天；连续模糊 -> 1 天
+  const r = w.eval("(()=>{ const x={e:2.5,st:2,lp:0,iv:10}; srsUpdate(x,'fuzzy',Date.now(),'recall'); const a={iv:x.iv,st:x.st,e:x.e,fz:x.fz}; srsUpdate(x,'fuzzy',Date.now(),'recall'); return {a,b:{iv:x.iv,st:x.st,fz:x.fz}}; })()");
+  ok(r.a.iv === 6 && r.a.st === 1 && r.a.fz === 1, '记不清：间隔 10→6 天、连对减 1');
+  ok(r.b.iv === 1 && r.b.fz === 2, '连续两次记不清回到 1 天');
+  const clear = w.eval("(()=>{ const x={e:2.5,st:0,lp:0,iv:1,fz:2}; srsUpdate(x,'good',Date.now(),'recall'); const a=x.fz; srsUpdate(x,'good',Date.now(),'listen'); return {a,b:x.fz}; })()");
+  ok(clear.a === 2 && clear.b === 0, '认词 + 听音各对一次才摘帽');
+
+  w.eval(`S=defaults(); S.cfg.goal=999; S.learned[${id}]={w:0,r:1,t:Date.now(),ok:true,e:2.5,st:0,lp:0,iv:1,fz:2,fzRecall:0,fzAlt:0}; save(); go('home')`);
+  ok(doc.body.textContent.includes('模糊词'), '首页出现模糊词入口');
+  clk('fuzzyBook');
+  ok(doc.body.textContent.includes('模糊词') && !!doc.querySelector('[data-act="fuzzyStart"]'), '模糊词页可认词复习');
+  ok(!!doc.querySelector('[data-act="fuzzyListen"]') && !!doc.querySelector('[data-act="fuzzyCloze"]'), '模糊词页有听音/填空巩固');
+  clk('fuzzyStart');
+  ok(!!doc.querySelector('.qword'), '模糊词可以开始认词复习');
 }
 
 console.log(`\n结果：${pass} 通过，${fail} 失败`);

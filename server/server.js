@@ -164,6 +164,8 @@ function summarize(payload) {
     today, goal, streak: Math.max(0, Number(st.streak || 0)),
     due: Math.max(0, Number(st.due || 0)),
     wrongN: Math.max(0, Number(st.wrongN || 0)),
+    fuzzyN: Math.max(0, Number(st.fuzzyN || 0)),
+    fuzzyRate: Math.max(0, Math.min(100, Number(st.fuzzyRate || 0))),
     stars: Math.max(0, Number(st.stars || 0)),
     activeDays, lastStudy, days, sessions: sessions.slice(0, 30), kindStats
   };

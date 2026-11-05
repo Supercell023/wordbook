@@ -45,7 +45,7 @@ function ok(name, cond, extra) { if (!cond) { console.error('  ✗ ' + name, ext
     ok('同一激活码不能二次绑定', r.status === 409);
 
     console.log('[3] 上传');
-    const data = { learned: 40, seq: 2, minutes: 15, today: 12, goal: 20, streak: 3, due: 4, wrongN: 2, stars: 5,
+    const data = { learned: 40, seq: 2, minutes: 15, today: 12, goal: 20, streak: 3, due: 4, wrongN: 2, fuzzyN: 3, fuzzyRate: 15, stars: 5,
       days: { [new Date().toISOString().slice(0, 10)]: 12 },
       sessions: [{ ts: Date.now(), first: 12, total: 20, dur: 300, wrong: 2, kind: 'learn', gno: 1 }],
       groups: [
@@ -67,6 +67,7 @@ function ok(name, cond, extra) { if (!cond) { console.error('  ✗ ' + name, ext
     ok('学生出现在名单里', r.body.students.length === 1 && st.name === '小明');
     ok('统计了组数与正确率', st.summary.groups === 2 && st.summary.accuracy === 73);
     ok('错词合并计数', st.summary.topWrong[0].w === 'appear' && st.summary.topWrong[0].n === 3);
+    ok('模糊词与 7 天模糊率', st.summary.fuzzyN === 3 && st.summary.fuzzyRate === 15);
     ok('上传次数', st.pushes === 2);
     ok('今日目标与连续天数', st.summary.today === 12 && st.summary.goal === 20 && st.summary.streak === 3);
     ok('每日趋势与练习类型', Object.keys(st.summary.days).length === 1 && st.summary.kindStats.learn === 1);

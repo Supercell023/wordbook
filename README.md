@@ -8,7 +8,7 @@
 
 [![词库](https://img.shields.io/badge/%E8%AF%8D%E5%BA%93-18%2C337%20%E8%AF%8D-2ea44f?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![单文件](https://img.shields.io/badge/%E5%8D%95%E6%96%87%E4%BB%B6-7.2MB-1f6feb?style=for-the-badge)](https://github.com/Supercell023/wordbook/releases)
-[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-205%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
+[![测试](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-217%20%E9%A1%B9%E9%80%9A%E8%BF%87-brightgreen?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![CI](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml/badge.svg)](https://github.com/Supercell023/wordbook/actions/workflows/ci.yml)
 [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Android%20%C2%B7%20iOS%20%C2%B7%20Web-8957e5?style=for-the-badge)](https://github.com/Supercell023/wordbook)
 [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-MIT-yellow?style=for-the-badge)](LICENSE)
@@ -33,6 +33,9 @@
 <img src="docs/screenshots/shot-cloze.png" width="30%" alt="例句填空">
 <img src="docs/screenshots/shot-wrong.png" width="30%" alt="错题本">
 <br><sub>听音选义 · 例句填空 · 错题本</sub>
+<br>
+<img src="docs/screenshots/shot-fuzzy.png" width="44%" alt="模糊词巩固">
+<br><sub>模糊词：认词 + 听音/填空各对一次才摘帽</sub>
 
 </div>
 
@@ -44,7 +47,7 @@
 |---|---|---|
 | 词库 | 平台定，改不了 | **自己选**：中考/高考/四级/六级/考研/专四/专八/CATTI/雅思/托福 + 上海两库，设置里随时切换 |
 | 学习数据 | 存在别人服务器上 | **全在本地**，断网也能背，导出就是一份 JSON |
-| 分组 | 算法决定，你只能跟着走 | **一组 20 词，全部点「掌握」才算过**，不熟的本组重考 |
+| 分组 | 算法决定，你只能跟着走 | **一组 20 词，三档评分**：不熟回队尾、记不清隔两张卡再考、掌握才出队 |
 | 复习 | 只能按它安排的来 | **按原组复习**，或**跨组随机重组 20 词** |
 | 词条 | 一两个中文意思，词性写「名/动」 | **多义项 + 英文词性 + 英英释义 + 词形变化 + 近反义词 + 柯林斯星级** |
 | 查词 | 只能按词表一页页翻 | 首页 🔍 **英文 / 中文都能查**；同族词、近反义词在词卡里都能继续点 |
@@ -57,20 +60,21 @@
 选词库 ─▶ 一组 20 词 ─▶ 中英文整体熟悉一遍
                           │
                           ▼
-              随机抽一个英文，只有两个按钮
-                  ┌───────────┐  ┌───────────┐
-                  │  掌握 ✅  │  │  不熟 ✖   │
-                  └─────┬─────┘  └─────┬─────┘
-                        │              │
-                  出队，不再考     放回本组队尾，再考
-                        │              │
-                        └──────┬───────┘
-                               ▼
-                  20 个全点过掌握 ─▶ 写入「已背词本」
-                                          │
-                       ┌──────────────────┴──────────────────┐
-                       ▼                                     ▼
-              按原组复习（可随机选组）              跨组随机重组 20 词
+              随机抽一个英文，三档评分
+             ┌──────────┐ ┌──────────┐ ┌──────────┐
+             │ 不熟 ✖   │ │ 记不清 ◐ │ │ 掌握 ✅  │
+             └────┬─────┘ └────┬─────┘ └────┬─────┘
+                  │            │            │
+             放回队尾      2 张卡后回马枪   出队
+                  │            │            │
+                  └──────┬─────┴────────────┘
+                         ▼
+              队列清空 ─▶ 写入「已背词本」
+                         │
+              记不清的词 ─▶「模糊词」继续巩固
+                         │
+                         ├─▶ 按原组复习（可随机选组）
+                         └─▶ 跨组随机重组 20 词
 ```
 
 点开释义之后还有：**中英对照例句**、**音节划分**（ap·pear）、**同族词**（appear → appearance n.）、**词形变化**（book → booked / books）、**近反义词**；同族词和近反义词都可以继续点开看释义。单词旁边有 🔊 朗读。
@@ -89,7 +93,7 @@
 
 ### ② 安卓安装包
 
-下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.11.6）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
+下载 Releases 里的 `wordbook.apk`，或直接下载仓库中的 [android/wordbook.apk](android/wordbook.apk)（v0.12.0）安装。内置原生语音（Android TextToSpeech），比网页版发音更稳。
 
 ### ③ 安装成 PWA（iPhone / Android 推荐）
 
@@ -195,9 +199,9 @@ sudo bash server/deploy.sh --domain wb.example.com
 
 ## ✅ 测试
 
-- **205 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
+- **217 项功能断言**：用 jsdom 真实加载 `dist/vocab.html`，模拟点击走完学习、复习、生词本、拼写、迁移、多义项、词卡、主题、搜索与奖励等全部流程
 - **布局检查**：用 Chromium 量每个页面的元素边界，保证 390px 手机宽度下没有横向溢出
-- **服务器测试**：34 项接口断言（激活码、去重、越权、伪造令牌、老师备注、作业回执、CSV 导出）
+- **服务器测试**：35 项接口断言（激活码、去重、越权、伪造令牌、老师备注、作业回执、CSV 导出）
 
 ## 📚 文档
 
